@@ -44,4 +44,6 @@ urlpatterns = [
     path('system/backup/<str:filename>/download/', views.system_backup_download, name='manage_system_backup_download'),
     path('system/backup/<str:filename>/restore/', views.system_backup_restore, name='manage_system_backup_restore'),
     path('system/backup/<str:filename>/delete/', views.system_backup_delete, name='manage_system_backup_delete'),
+    path('system/backup/seed-dummy/', views.system_seed_dummy, name='manage_system_seed_dummy'),
+    path('system/backup/reset-data/', views.system_reset_data, name='manage_system_reset_data'),
 ]

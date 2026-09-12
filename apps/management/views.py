@@ -19,6 +19,7 @@ from grading.models import AttemptGrade, EssayEvaluation
 from audit.models import SecurityAuditLog, AuditEventType
 from services.scoring_service import ScoringService
 from services.backup_service import BackupService
+from services.data_factory_service import CyberDataFactoryService
 
 
 def staff_or_admin_required(view_func):
@@ -1265,5 +1266,70 @@ def system_backup_delete(request, filename):
         else:
             messages.error(request, msg)
     return redirect('manage_system_backup')
+
+
+@developer_required
+def system_seed_dummy(request):
+    """Menyuntikkan data dummy siber lengkap via Web UI."""
+    if request.method == 'POST':
+        reset_first = request.POST.get('reset_first') == '1'
+        try:
+            # Otomatis buat safety backup sebelum modifikasi
+            BackupService.create_backup(
+                user=request.user,
+                backup_type='full',
+                description="Safety backup before Seeding Cyber Dummy Data"
+            )
+
+            if reset_first:
+                CyberDataFactoryService.reset_attempts_and_scores(user=request.user)
+
+            summary = CyberDataFactoryService.seed_realistic_cyber_data(operator=request.user)
+            messages.success(
+                request,
+                f"DATA DUMMY SIBER BERHASIL DIINJEKSI! ({summary['questions_count']} Soal, {summary['attempts_count']} Sesi Ujian, {summary['users_count']} User)."
+            )
+        except Exception as e:
+            messages.error(request, f"Gagal menyuntikkan data dummy: {str(e)}")
+    return redirect('manage_system_backup')
+
+
+@developer_required
+def system_reset_data(request):
+    """Mereset data transaksional atau data kompetisi via Web UI."""
+    if request.method == 'POST':
+        reset_type = request.POST.get('reset_type', 'attempts_only')
+        confirmation_code = request.POST.get('confirmation_code', '').strip()
+
+        expected_code = 'RESET-CONFIRM'
+        if confirmation_code != expected_code:
+            messages.error(request, f"Konfirmasi gagal! Anda harus mengetik persis '{expected_code}' untuk mereset data.")
+            return redirect('manage_system_backup')
+
+        try:
+            # Otomatis buat safety backup sebelum reset
+            BackupService.create_backup(
+                user=request.user,
+                backup_type='full',
+                description=f"Automated Safety Rollback before Data Reset ({reset_type})"
+            )
+
+            if reset_type == 'attempts_only':
+                counts = CyberDataFactoryService.reset_attempts_and_scores(user=request.user)
+                messages.success(
+                    request,
+                    f"RESET SESI UJIAN BERHASIL! Dihapus: {counts['exam_attempts']} sesi, {counts['attempt_answers']} jawaban, {counts['attempt_grades']} nilai."
+                )
+            else: # full_reset
+                counts = CyberDataFactoryService.reset_all_competition_data(user=request.user)
+                messages.success(
+                    request,
+                    f"RESET TOTAL BERHASIL! Dihapus: {counts['competitions']} kompetisi, {counts['questions']} soal, {counts['exam_attempts']} sesi. Akun Developer & Admin tetap aman."
+                )
+        except Exception as e:
+            messages.error(request, f"Gagal mereset data: {str(e)}")
+
+    return redirect('manage_system_backup')
+
 
 

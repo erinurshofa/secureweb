@@ -113,6 +113,47 @@
   </div>
 </div>
 
+<!-- ========================================== -->
+<!-- CYBER DATA FACTORY & TOURNAMENT SANDBOX   -->
+<!-- ========================================== -->
+<div class="saas-card" style="padding: 20px 22px; margin-bottom: 24px; border: 1px solid rgba(56, 189, 248, 0.35); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.7)); box-shadow: 0 4px 20px rgba(56, 189, 248, 0.1);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.35rem;">🧪</span>
+        <h3 style="margin: 0; font-size: 1.1rem; color: #fff; font-weight: 700;">Cyber Data Factory &amp; Tournament Sandbox</h3>
+        <span style="font-family: var(--font-mono); font-size: 0.7rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 700;">
+          DEVELOPER TOOLKIT
+        </span>
+      </div>
+      <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 4px;">
+        Suntikkan dataset kompetisi siber (CTF) ultra-relevan (soal web, binary, crypto, forensic, sesi live, multi-juri) atau bersihkan sesi ujian dengan aman.
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <!-- Seed Dummy Data Form -->
+      <form method="POST" action="{% url 'manage_system_seed_dummy' %}" style="margin: 0;">
+        {% csrf_token %}
+        <input type="hidden" name="reset_first" value="0">
+        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0ea5e9); border: 1px solid #38bdf8; color: #fff; font-weight: 700; padding: 8px 16px; font-size: 0.82rem; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 0 14px rgba(14, 165, 233, 0.35);" title="Suntikkan dataset siber lengkap">
+          <span>⚡</span> <span>Seed Data Dummy Siber</span>
+        </button>
+      </form>
+
+      <!-- Clean Attempts Only Button -->
+      <button onclick="openResetModal('attempts_only')" class="btn-secondary" style="border-color: rgba(251, 191, 36, 0.5); color: #fbbf24; padding: 8px 14px; font-size: 0.82rem; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" title="Kosongkan sesi ujian dan lembar jawaban untuk memulai kompetisi baru">
+        <span>🧹</span> <span>Reset Sesi &amp; Jawaban</span>
+      </button>
+
+      <!-- Full Reset Button -->
+      <button onclick="openResetModal('full_reset')" class="btn-secondary" style="border-color: rgba(239, 68, 68, 0.5); color: #f87171; padding: 8px 12px; font-size: 0.82rem; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" title="Reset total data kompetisi (Akun developer & admin dijamin tetap aman)">
+        <span>⚠️</span> <span>Reset Total Data</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Snapshot Vault Table Card -->
 <div class="saas-card" style="padding: 22px; border: 1px solid var(--border-default);">
   <!-- Search & Filter Controls -->
@@ -396,6 +437,47 @@
 </div>
 
 <!-- ========================================== -->
+<!-- MODAL: KONFIRMASI RESET DATA SIBER         -->
+<!-- ========================================== -->
+<div id="resetDataModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+  <div style="background: #111827; border: 2px solid #f59e0b; border-radius: var(--radius-lg); width: 92%; max-width: 540px; padding: 28px; box-shadow: 0 0 50px rgba(245, 158, 11, 0.4);">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fbbf24;">
+        🧹
+      </div>
+      <div>
+        <h3 id="resetModalTitle" style="margin: 0; font-size: 1.2rem; color: #fbbf24; font-weight: 800;">KONFIRMASI PEMBERSIHAN DATA</h3>
+        <div id="resetModalSubtitle" style="font-size: 0.78rem; color: var(--text-muted);">Tindakan ini menghapus data sesi ujian atau kompetisi.</div>
+      </div>
+    </div>
+
+    <!-- Safety Guarantee Callout -->
+    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; font-size: 0.8rem; color: #6ee7b7;">
+      <strong>🛡️ Jaminan Zero Data Loss:</strong> Sistem secara otomatis membuat <em>Safety Rollback Snapshot</em> sebelum pembersihan dilakukan. Akun <strong>Developer</strong> dan <strong>Super Admin</strong> dijamin aman 100%.
+    </div>
+
+    <form method="POST" action="{% url 'manage_system_reset_data' %}">
+      {% csrf_token %}
+      <input type="hidden" id="resetTypeInput" name="reset_type" value="attempts_only">
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #fde68a; margin-bottom: 6px;">
+          Ketik teks <code style="background: rgba(245, 158, 11, 0.3); padding: 2px 6px; border-radius: 4px; color: #fff; font-weight: 800;">RESET-CONFIRM</code> di bawah untuk melanjutkan:
+        </label>
+        <input type="text" id="confirmResetCodeInput" name="confirmation_code" onkeyup="checkResetCode()" placeholder="Ketik persis: RESET-CONFIRM" autocomplete="off" style="width: 100%; min-height: 42px; padding: 8px 12px; background: #000; border: 2px solid #f59e0b; border-radius: var(--radius-sm); color: #fff; font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; outline: none; letter-spacing: 0.05em;">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeResetModal()" class="btn-secondary" style="padding: 8px 16px;">Batal</button>
+        <button type="submit" id="executeResetBtn" disabled class="btn-primary" style="background: #f59e0b; border-color: #fbbf24; color: #111827; font-weight: 800; padding: 8px 20px; opacity: 0.4; cursor: not-allowed; transition: var(--transition-fast);">
+          🧹 Eksekusi Pembersihan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
 <!-- FORM TERSEMBUNYI UNTUK PENGHAPUSAN         -->
 <!-- ========================================== -->
 <form id="deleteForm" method="POST" action="" style="display: none;">
@@ -490,12 +572,54 @@
     });
   }
 
+  function openResetModal(type) {
+    document.getElementById('resetTypeInput').value = type;
+    document.getElementById('confirmResetCodeInput').value = '';
+    const btn = document.getElementById('executeResetBtn');
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+
+    const titleEl = document.getElementById('resetModalTitle');
+    const subEl = document.getElementById('resetModalSubtitle');
+    if (type === 'attempts_only') {
+      titleEl.textContent = 'KONFIRMASI RESET SESI & JAWABAN';
+      subEl.textContent = 'Hanya menghapus sesi pengerjaan ujian peserta, lembar jawaban, dan nilai. Bank soal tetap utuh.';
+    } else {
+      titleEl.textContent = 'KONFIRMASI RESET TOTAL DATA SIBER';
+      subEl.textContent = 'Mereset kompetisi, bank soal, dan peserta dummy. Akun Developer & Super Admin dijamin aman.';
+    }
+
+    document.getElementById('resetDataModal').style.display = 'flex';
+  }
+
+  function closeResetModal() {
+    document.getElementById('resetDataModal').style.display = 'none';
+  }
+
+  function checkResetCode() {
+    const val = document.getElementById('confirmResetCodeInput').value.trim();
+    const btn = document.getElementById('executeResetBtn');
+    if (val === 'RESET-CONFIRM') {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.style.boxShadow = '0 0 20px rgba(245, 158, 11, 0.6)';
+    } else {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.cursor = 'not-allowed';
+      btn.style.boxShadow = 'none';
+    }
+  }
+
   // Close modals on escape key
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeCreateModal();
       closeUploadModal();
       closeRestoreModal();
+      closeResetModal();
     }
   });
 </script>
