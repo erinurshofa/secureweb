@@ -1,0 +1,863 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Penilaian Essay & Review Juri{% endblock %}
+{% block header_title %}Penilaian Essay{% endblock %}
+{% block page_heading %}Pusat Penilaian & Deliberasi Juri{% endblock %}
+{% block page_subheading %}Evaluasi objektif analisis teknis peserta dengan mode Blind Review, panduan rubrik, analitik forensik ketikan, dan konsensus multi-juri.{% endblock %}
+
+{% block admin_content %}
+<!-- KPI Metrics: Overall Grading Progress & Discrepancy Alerts -->
+<div class="grid-kpi" style="margin-bottom: 24px;">
+  <div class="stat-kpi-card" style="border-left: 3px solid #3b82f6;">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;">
+      Total Jawaban Essay
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" style="font-size: 2.2rem; font-weight: 800; color: #ffffff;">{{ total_count }}</span>
+      <span style="font-size: 0.82rem; color: #60a5fa;">Jawaban</span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Dari sesi ujian yang telah diserahkan</div>
+  </div>
+
+  <div class="stat-kpi-card" style="border-left: 3px solid #f59e0b;">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;">
+      Belum Saya Nilai
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24;">{{ my_pending_count }}</span>
+      <span style="font-size: 0.82rem; color: #fbbf24;">Antrean Saya</span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Menunggu input skor akun Anda</div>
+  </div>
+
+  <div class="stat-kpi-card" style="border-left: 3px solid #10b981;">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;">
+      Sudah Dinilai Juri
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" style="font-size: 2.2rem; font-weight: 800; color: #34d399;">{{ graded_count }}</span>
+      <span style="font-size: 0.82rem; color: #34d399;">({{ progress_percent }}%)</span>
+    </div>
+    <div style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 99px; overflow: hidden; margin-top: 8px;">
+      <div style="width: {{ progress_percent }}%; height: 100%; background: linear-gradient(90deg, #10b981, #3b82f6); border-radius: 99px;"></div>
+    </div>
+  </div>
+
+  <div class="stat-kpi-card" style="border-left: 3px solid {% if discrepancy_count > 0 %}#ef4444{% else %}#8b5cf6{% endif %};">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;">
+      Selisih Nilai & Eskalasi
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" style="font-size: 2.2rem; font-weight: 800; color: {% if discrepancy_count > 0 %}#f87171{% else %}#c084fc{% endif %};">
+        {{ discrepancy_count }}
+      </span>
+      <span style="font-size: 0.82rem; color: {% if discrepancy_count > 0 %}#fca5a5{% else %}#c084fc{% endif %};">
+        Discrepancy ({{ disputed_count }} Diskusi)
+      </span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Perlu rekonsiliasi antar dewan juri</div>
+  </div>
+</div>
+
+<!-- Interactive Filter, Blind Mode Toggle & Search Bar -->
+<div class="saas-card" style="padding: 18px 20px; border: 1px solid var(--border-default); margin-bottom: 24px;">
+  <form method="GET" action="{% url 'manage_grading' %}" id="grading-filter-form" style="display: flex; flex-direction: column; gap: 14px;">
+    
+    <!-- Top Filter Row: Navigation Pills & Blind Mode Switch -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 14px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="?status=all{% if blind_mode %}&blind=1{% else %}&blind=0{% endif %}{% if selected_comp %}&competition_id={{ selected_comp }}{% endif %}{% if selected_question %}&question_id={{ selected_question }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+           class="btn-secondary" 
+           style="padding: 6px 12px; min-height: 32px; font-size: 0.8rem; {% if status_filter == 'all' %}background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; color: #fff; font-weight: 700;{% endif %}">
+          Semua ({{ total_count }})
+        </a>
+
+        <a href="?status=my_pending{% if blind_mode %}&blind=1{% else %}&blind=0{% endif %}{% if selected_comp %}&competition_id={{ selected_comp }}{% endif %}{% if selected_question %}&question_id={{ selected_question }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+           class="btn-secondary" 
+           style="padding: 6px 12px; min-height: 32px; font-size: 0.8rem; {% if status_filter == 'my_pending' %}background: rgba(245, 158, 11, 0.25); border-color: #f59e0b; color: #fbbf24; font-weight: 700;{% endif %}">
+          🎯 Belum Saya Nilai ({{ my_pending_count }})
+        </a>
+
+        <a href="?status=pending{% if blind_mode %}&blind=1{% else %}&blind=0{% endif %}{% if selected_comp %}&competition_id={{ selected_comp }}{% endif %}{% if selected_question %}&question_id={{ selected_question }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+           class="btn-secondary" 
+           style="padding: 6px 12px; min-height: 32px; font-size: 0.8rem; {% if status_filter == 'pending' %}background: rgba(245, 158, 11, 0.2); border-color: #f59e0b; color: #fbbf24; font-weight: 700;{% endif %}">
+          ⏳ Menunggu Global ({{ pending_count }})
+        </a>
+
+        <a href="?status=graded{% if blind_mode %}&blind=1{% else %}&blind=0{% endif %}{% if selected_comp %}&competition_id={{ selected_comp }}{% endif %}{% if selected_question %}&question_id={{ selected_question }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+           class="btn-secondary" 
+           style="padding: 6px 12px; min-height: 32px; font-size: 0.8rem; {% if status_filter == 'graded' %}background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #34d399; font-weight: 700;{% endif %}">
+          ✓ Sudah Dinilai ({{ graded_count }})
+        </a>
+
+        <a href="?status=discrepancy{% if blind_mode %}&blind=1{% else %}&blind=0{% endif %}{% if selected_comp %}&competition_id={{ selected_comp }}{% endif %}{% if selected_question %}&question_id={{ selected_question }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+           class="btn-secondary" 
+           style="padding: 6px 12px; min-height: 32px; font-size: 0.8rem; {% if status_filter == 'discrepancy' %}background: rgba(239, 68, 68, 0.25); border-color: #ef4444; color: #fca5a5; font-weight: 700;{% endif %}">
+          ⚠️ Selisih Nilai Tinggi ({{ discrepancy_count }})
+        </a>
+
+        <a href="?status=disputed{% if blind_mode %}&blind=1{% else %}&blind=0{% endif %}{% if selected_comp %}&competition_id={{ selected_comp }}{% endif %}{% if selected_question %}&question_id={{ selected_question }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+           class="btn-secondary" 
+           style="padding: 6px 12px; min-height: 32px; font-size: 0.8rem; {% if status_filter == 'disputed' %}background: rgba(139, 92, 246, 0.25); border-color: #8b5cf6; color: #c084fc; font-weight: 700;{% endif %}">
+          🚩 Eskalasi / Diskusi ({{ disputed_count }})
+        </a>
+      </div>
+
+      <!-- Blind Mode Toggle HUD Button -->
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <input type="hidden" name="blind" id="blind-input" value="{% if blind_mode %}1{% else %}0{% endif %}">
+        <button 
+          type="button" 
+          onclick="toggleBlindMode()"
+          class="btn-secondary" 
+          style="padding: 6px 14px; min-height: 34px; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; {% if blind_mode %}background: rgba(6, 182, 212, 0.15); border-color: #06b6d4; color: #22d3ee; font-weight: 700; box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);{% else %}background: rgba(255, 255, 255, 0.05); color: var(--text-muted);{% endif %}"
+          title="Alihkan mode penilaian anonim tanpa bias"
+        >
+          <span>{% if blind_mode %}🎭 Blind Review: AKTIF{% else %}👤 Blind Review: NONAKTIF{% endif %}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dropdowns & Search Row -->
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="hidden" name="status" value="{{ status_filter }}">
+
+      <!-- Filter Babak Kompetisi -->
+      <div style="flex: 1 1 200px; min-width: 180px;">
+        <select name="competition_id" onchange="document.getElementById('grading-filter-form').submit()" style="width: 100%; min-height: 38px; font-size: 0.84rem;">
+          <option value="">Semua Babak Kompetisi</option>
+          {% for comp in competitions %}
+            <option value="{{ comp.id }}" {% if selected_comp == comp.id|stringformat:"s" %}selected{% endif %}>
+              {{ comp.title }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Filter Soal Essay -->
+      <div style="flex: 1 1 240px; min-width: 200px;">
+        <select name="question_id" onchange="document.getElementById('grading-filter-form').submit()" style="width: 100%; min-height: 38px; font-size: 0.84rem;">
+          <option value="">Semua Soal Essay</option>
+          {% for q in essay_questions %}
+            <option value="{{ q.id }}" {% if selected_question == q.id|stringformat:"s" %}selected{% endif %}>
+              Soal #{{ q.sequence }}: {{ q.title|truncatechars:42 }} ({{ q.points }} Poin)
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Search Input -->
+      <div style="flex: 2 1 260px; display: flex; gap: 8px;">
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_q }}" 
+          placeholder="Cari kata kunci jawaban, judul soal..." 
+          style="flex: 1; min-height: 38px; font-size: 0.84rem;"
+        >
+        <button type="submit" class="btn-primary" style="min-height: 38px; padding: 0 16px; font-size: 0.82rem; background: #2563eb;">
+          Cari
+        </button>
+        {% if selected_comp or selected_question or search_q or status_filter != 'all' or not blind_mode %}
+          <a href="{% url 'manage_grading' %}" class="btn-secondary" style="min-height: 38px; padding: 0 12px; font-size: 0.82rem;" title="Reset Filter">
+            ✕
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<!-- Essay Answer Cards List -->
+<div style="display: flex; flex-direction: column; gap: 24px;">
+  {% for ans in essay_answers %}
+    <div id="essay-card-{{ ans.id }}" class="saas-card" style="padding: 24px 22px; border: 1px solid {% if ans.has_discrepancy %}rgba(239, 68, 68, 0.4){% elif ans.is_disputed %}rgba(139, 92, 246, 0.4){% else %}var(--border-default){% endif %}; border-radius: var(--radius-lg); background: #0b1120; position: relative;">
+      
+      <!-- Top Card Header: Participant Identity (Blind or Real) + Badges -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          {% if blind_mode %}
+            <span class="badge-clean badge-cyan" style="font-weight: 700; font-size: 0.86rem; padding: 4px 12px; border: 1px solid rgba(6, 182, 212, 0.4);">
+              🎭 {{ ans.pseudonym }}
+            </span>
+            <span class="badge-clean badge-gray" style="font-size: 0.76rem;" title="Identitas peserta disamarkan demi objektivitas penilaian">
+              🔒 Double-Blind Mode
+            </span>
+          {% else %}
+            <span class="badge-clean badge-blue" style="font-weight: 700; font-size: 0.86rem; padding: 4px 10px;">
+              👤 {{ ans.attempt.participant.username }}
+            </span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+              ({{ ans.attempt.participant.institution|default:"Independen" }})
+            </span>
+          {% endif %}
+
+          <span class="badge-clean badge-gray" style="font-size: 0.78rem;">
+            {{ ans.attempt.competition.title }}
+          </span>
+
+          <span class="badge-clean badge-amber code-font" style="font-size: 0.8rem; font-weight: 700;">
+            Soal #{{ ans.question.sequence }} • Bobot: {{ ans.question.points }} Poin
+          </span>
+
+          <!-- Integrity Tab-Blur Indicator -->
+          {% if ans.tab_blur_count > 0 %}
+            <span class="badge-clean badge-amber" style="font-size: 0.76rem; border-color: rgba(245, 158, 11, 0.4);" title="Peserta tercatat berpindah window / tab selama ujian">
+              ⚠️ {{ ans.tab_blur_count }}x Tab Blur
+            </span>
+          {% else %}
+            <span class="badge-clean badge-green" style="font-size: 0.74rem;" title="Tidak ada catatan pelanggaran tab blur">
+              🛡️ Integritas Bersih
+            </span>
+          {% endif %}
+        </div>
+
+        <!-- Multi-Judge Evaluation Status Badges -->
+        <div class="evaluation-status-container" id="eval-status-{{ ans.id }}" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+          {% if ans.essay_evaluations.exists %}
+            {% for eval in ans.essay_evaluations.all %}
+              <span class="badge-clean {% if eval.judge_id == user.id %}badge-green{% else %}badge-blue{% endif %}" style="font-size: 0.78rem; padding: 3px 8px;">
+                {% if eval.judge_id == user.id %}✓ Nilai Anda:{% else %}{{ eval.judge.username }}:{% endif %} 
+                <strong>{{ eval.score_awarded }} Poin</strong>
+              </span>
+            {% endfor %}
+            <span class="badge-clean badge-purple code-font" style="font-size: 0.8rem; font-weight: 800; border: 1px solid rgba(139, 92, 246, 0.5);">
+              Rata-Rata: {{ ans.aggregated_score }} / {{ ans.question.points }}
+            </span>
+          {% else %}
+            <span class="badge-clean badge-amber" style="font-size: 0.8rem; padding: 4px 10px;">
+              ⏳ Menunggu Penilaian Juri
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Discrepancy & Dispute Alert Banners if Applicable -->
+      {% if ans.has_discrepancy %}
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #fca5a5;">
+            <span>⚠️</span>
+            <span><strong>Discrepancy Alert:</strong> Terdapat selisih penilaian sebesar <strong>{{ ans.discrepancy_delta }} Poin</strong> (&ge; 30% bobot soal) antar dewan juri. Disarankan menyelaraskan persepsi rubrik.</span>
+          </div>
+          <span class="badge-clean badge-red" style="font-size: 0.72rem;">Selisih Tinggi</span>
+        </div>
+      {% endif %}
+
+      {% if ans.is_disputed %}
+        <div style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #c084fc;">
+            <span>🚩</span>
+            <span><strong>Status Diskusi Dewan Juri:</strong> {{ ans.dispute_reason|default:"Memerlukan telaah dan deliberasi bersama juri kepala." }}</span>
+          </div>
+          <span class="badge-clean badge-purple" style="font-size: 0.72rem;">Eskalasi Juri</span>
+        </div>
+      {% endif %}
+
+      <!-- Question Detail, Attachments, and Interactive Official Rubric Accordion -->
+      <div style="margin-bottom: 18px; background: #070c18; border-radius: var(--radius-md); padding: 14px 16px; border: 1px solid rgba(255, 255, 255, 0.06);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
+            Pertanyaan Soal Essay:
+          </span>
+          <span style="font-size: 0.74rem; color: var(--text-muted);">
+            Sesi diserahkan: {{ ans.attempt.submitted_at|date:"d M Y, H:i" }}
+          </span>
+        </div>
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 8px;">
+          {{ ans.question.title }}
+        </h3>
+        <div style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; word-break: break-word;">{{ ans.question.body }}</div>
+
+        <!-- Official Rubric & Guidelines Accordion (Collapsible) -->
+        <div style="margin-top: 14px; border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 12px;">
+          <button 
+            type="button" 
+            onclick="toggleRubricAccordion('{{ ans.id }}')"
+            style="background: none; border: none; padding: 0; color: #38bdf8; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;"
+          >
+            <span id="rubric-icon-{{ ans.id }}">▶</span>
+            <span>📖 Rubrik Penilaian & Kunci Analisis Resmi (Klik untuk Melihat)</span>
+          </button>
+          
+          <div id="rubric-box-{{ ans.id }}" style="display: none; margin-top: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 14px 16px;">
+            <div style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #38bdf8; margin-bottom: 6px;">
+              Pedoman Penskoran & Poin Kunci Pengujian:
+            </div>
+            {% if ans.question.rubric_guidelines %}
+              <div style="font-size: 0.86rem; color: #e0f2fe; line-height: 1.6; white-space: pre-wrap; font-family: var(--font-sans);">{{ ans.question.rubric_guidelines }}</div>
+            {% else %}
+              <div style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;">
+                (Belum ada rubrik khusus dari pembuat soal. Standar penskoran: Bobot Root Cause 30%, Bukti PoC/Eksploitasi 40%, Langkah Mitigasi/Remediasi 30%).
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Challenge Attachments if available -->
+        {% if ans.question.attachments.all %}
+          <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Lampiran Challenge:</span>
+            {% for att in ans.question.attachments.all %}
+              <a href="{% url 'download_attachment' att.id %}" target="_blank" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.78rem; gap: 6px;">
+                <span>📁 {{ att.display_filename }}</span>
+                <span style="color: var(--text-muted);">({{ att.file_size|filesizeformat }})</span>
+                <span>⬇</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Participant's Answer Content & Forensic Inspector Button -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #60a5fa;">
+              Uraian Jawaban Peserta:
+            </label>
+            {% if not ans.essay_text %}
+              <span class="badge-clean badge-amber" style="font-size: 0.72rem;">⚠️ Jawaban Kosong</span>
+            {% else %}
+              <span class="code-font" style="font-size: 0.74rem; color: var(--text-muted);">
+                {{ ans.essay_text|length }} Karakter • Revisi #{{ ans.revision_count }}
+              </span>
+            {% endif %}
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <!-- Forensic History Modal Button -->
+            <button 
+              type="button" 
+              onclick="openForensicModal('{{ ans.id }}', '{% if blind_mode %}{{ ans.pseudonym }}{% else %}{{ ans.attempt.participant.username }}{% endif %}')"
+              class="btn-secondary" 
+              style="padding: 4px 12px; min-height: 30px; font-size: 0.76rem; border-color: rgba(14, 165, 233, 0.4); color: #38bdf8;"
+              title="Lihat riwayat revisi autosave dan analitik kecepatan pengetikan peserta"
+            >
+              <span>🔍 Forensik Ketikan & Cadence Log</span>
+            </button>
+            <button 
+              type="button" 
+              onclick="copyAnswerText('{{ ans.id }}')"
+              class="btn-secondary" 
+              style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem;"
+              title="Salin teks jawaban ke clipboard"
+            >
+              <span>📋 Salin</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="answer-text-{{ ans.id }}" style="background: #060911; border: 1.5px solid {% if ans.essay_text %}rgba(59, 130, 246, 0.3){% else %}rgba(239, 68, 68, 0.3){% endif %}; border-radius: var(--radius-md); padding: 18px 20px; font-family: var(--font-mono); font-size: 0.92rem; color: #f8fafc; line-height: 1.65; white-space: pre-wrap; word-break: break-word; max-height: 420px; overflow-y: auto;">
+          {% if ans.essay_text %}
+{{ ans.essay_text }}
+          {% else %}
+            <em style="color: var(--text-muted);">(Peserta tidak mengisi jawaban pada soal essay ini)</em>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Comprehensive Scoring, Feedback & Internal Notes Form for Judge -->
+      <form onsubmit="submitEssayScore(event, '{{ ans.id }}')" id="form-grade-{{ ans.id }}" style="background: #0f172a; padding: 18px 20px; border-radius: var(--radius-md); border: 1px solid rgba(255, 255, 255, 0.08);">
+        {% csrf_token %}
+        
+        <!-- Quick Scoring Shortcuts -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-right: 4px;">
+              Pintasan Nilai:
+            </span>
+            <button type="button" onclick="setQuickScore('{{ ans.id }}', 0)" class="btn-secondary" style="padding: 2px 10px; min-height: 28px; font-size: 0.76rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+              0 Poin
+            </button>
+            <button type="button" onclick="setQuickScore('{{ ans.id }}', {{ ans.question.points }} / 2)" class="btn-secondary" style="padding: 2px 10px; min-height: 28px; font-size: 0.76rem; border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+              50% ({% widthratio ans.question.points 2 1 %} Poin)
+            </button>
+            <button type="button" onclick="setQuickScore('{{ ans.id }}', {{ ans.question.points }})" class="btn-secondary" style="padding: 2px 10px; min-height: 28px; font-size: 0.76rem; border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">
+              Maks ({{ ans.question.points }} Poin)
+            </button>
+          </div>
+
+          <!-- Quick Dispute Toggle Button -->
+          <button 
+            type="button" 
+            onclick="toggleDisputeModal('{{ ans.id }}')" 
+            class="btn-secondary" 
+            style="padding: 2px 12px; min-height: 28px; font-size: 0.76rem; border-color: rgba(168, 85, 247, 0.4); color: #c084fc;"
+          >
+            <span>🚩 {% if ans.is_disputed %}Ubah Status Eskalasi{% else %}Eskalasi ke Juri Kepala{% endif %}</span>
+          </button>
+        </div>
+
+        <!-- Scoring & Notes Form Inputs Grid -->
+        <div style="display: grid; grid-template-columns: 160px 1fr 1fr auto; gap: 14px; align-items: flex-end;">
+          
+          <!-- 1. Score Input -->
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 6px;">
+              Skor Anda (0 - {{ ans.question.points }}) *
+            </label>
+            <input 
+              type="number" 
+              step="0.25" 
+              name="score" 
+              id="score-input-{{ ans.id }}"
+              min="0" 
+              max="{{ ans.question.points }}" 
+              value="{% if ans.my_evaluation %}{{ ans.my_evaluation.score_awarded }}{% else %}0.00{% endif %}" 
+              required 
+              style="width: 100%; min-height: 42px; padding: 8px 12px; background: #070c18; border: 1.5px solid var(--border-default); border-radius: var(--radius-sm); color: #34d399; font-family: var(--font-mono); font-size: 1.15rem; font-weight: 800; outline: none;"
+            >
+          </div>
+
+          <!-- 2. Public Feedback (Peserta) -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">
+                Umpan Balik Peserta (Publik)
+              </label>
+              <div style="display: flex; gap: 6px;">
+                <span onclick="appendFeedback('{{ ans.id }}', 'Analisis PoC tepat & mitigasi memadai.')" style="font-size: 0.7rem; color: #60a5fa; cursor: pointer; text-decoration: underline;">
+                  + PoC Tepat
+                </span>
+                <span onclick="appendFeedback('{{ ans.id }}', 'Remediasi kurang mendalam.')" style="font-size: 0.7rem; color: #fbbf24; cursor: pointer; text-decoration: underline;">
+                  + Kurang
+                </span>
+              </div>
+            </div>
+            <input 
+              type="text" 
+              name="feedback" 
+              id="feedback-input-{{ ans.id }}"
+              value="{% if ans.my_evaluation %}{{ ans.my_evaluation.feedback }}{% endif %}" 
+              placeholder="Catatan untuk peserta..." 
+              style="width: 100%; min-height: 42px; padding: 8px 12px; background: #070c18; border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.84rem; outline: none;"
+            >
+          </div>
+
+          <!-- 3. Internal Notes (Rahasia Dewan Juri) -->
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #c084fc; margin-bottom: 6px;">
+              🔒 Catatan Rahasia Dewan Juri (Internal)
+            </label>
+            <input 
+              type="text" 
+              name="internal_notes" 
+              id="internal-notes-input-{{ ans.id }}"
+              value="{% if ans.my_evaluation %}{{ ans.my_evaluation.internal_notes }}{% endif %}" 
+              placeholder="Catatan deliberasi rahasia sesama juri..." 
+              style="width: 100%; min-height: 42px; padding: 8px 12px; background: #070c18; border: 1px solid rgba(139, 92, 246, 0.4); border-radius: var(--radius-sm); color: #e9d5ff; font-size: 0.84rem; outline: none;"
+            >
+          </div>
+
+          <!-- 4. Submit Button -->
+          <div>
+            <button type="submit" class="btn-success submit-score-btn" id="btn-submit-{{ ans.id }}" style="min-height: 42px; padding: 8px 22px; font-size: 0.86rem; font-weight: 700; white-space: nowrap;">
+              <span>Simpan Nilai ➔</span>
+            </button>
+          </div>
+
+        </div>
+
+      </form>
+
+    </div>
+  {% empty %}
+    <div class="saas-card" style="text-align: center; color: var(--text-muted); padding: 56px 24px; border: 1px solid var(--border-default);">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;">📋</div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Tidak Ada Jawaban Essay yang Cocok</h3>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 18px; line-height: 1.5;">
+        Belum ada jawaban essay dari sesi ujian yang telah disubmit, atau kriteria filter Anda tidak menemukan data.
+      </p>
+      {% if status_filter != 'all' or selected_comp or selected_question or search_q %}
+        <a href="{% url 'manage_grading' %}" class="btn-secondary" style="font-size: 0.84rem; padding: 8px 16px;">
+          Tampilkan Semua Jawaban Essay
+        </a>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: FORENSIK PENGETIKAN & LOG AUTOSAVE CADENCE                          -->
+<!-- ========================================================================= -->
+<div id="forensic-modal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #0b1120; border: 1px solid var(--border-default); border-radius: var(--radius-lg); width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
+    
+    <!-- Modal Header -->
+    <div style="padding: 16px 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 2px;">
+          🔍 Analisis Forensik Pengetikan Peserta
+        </h3>
+        <span id="forensic-modal-subtitle" style="font-size: 0.78rem; color: #38bdf8;">Memuat data...</span>
+      </div>
+      <button type="button" onclick="closeForensicModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div style="padding: 20px 22px; overflow-y: auto; flex: 1;">
+      
+      <!-- Metrics Strip -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px;">
+        <div style="background: #070c18; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Total Revisi Autosave</div>
+          <div id="forensic-stat-revisions" class="code-font" style="font-size: 1.4rem; font-weight: 700; color: #fff;">-</div>
+        </div>
+        <div style="background: #070c18; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Lonjakan Paste Instan</div>
+          <div id="forensic-stat-pastes" class="code-font" style="font-size: 1.4rem; font-weight: 700; color: #fbbf24;">-</div>
+        </div>
+        <div style="background: #070c18; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Pelanggaran Tab-Blur</div>
+          <div id="forensic-stat-blur" class="code-font" style="font-size: 1.4rem; font-weight: 700; color: #f87171;">-</div>
+        </div>
+        <div style="background: #070c18; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Panjang Karakter Akhir</div>
+          <div id="forensic-stat-length" class="code-font" style="font-size: 1.4rem; font-weight: 700; color: #34d399;">-</div>
+        </div>
+      </div>
+
+      <!-- Timeline Table -->
+      <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px;">
+        Kronologi Riwayat Perubahan Jawaban:
+      </div>
+
+      <div style="border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+          <thead>
+            <tr style="background: #070c18; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-secondary); text-align: left;">
+              <th style="padding: 8px 12px;">Rev #</th>
+              <th style="padding: 8px 12px;">Waktu Simpan</th>
+              <th style="padding: 8px 12px;">Karakter (+Δ)</th>
+              <th style="padding: 8px 12px;">Jeda</th>
+              <th style="padding: 8px 12px;">Status Pola</th>
+              <th style="padding: 8px 12px;">Cuplikan Teks</th>
+            </tr>
+          </thead>
+          <tbody id="forensic-table-body">
+            <tr>
+              <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">Memuat riwayat log forensik...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div style="padding: 12px 22px; border-top: 1px solid rgba(255, 255, 255, 0.08); text-align: right;">
+      <button type="button" onclick="closeForensicModal()" class="btn-secondary" style="padding: 6px 16px; font-size: 0.82rem;">
+        Tutup Inspektur
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: ESKALASI / SENGKETA DEWAN JURI                                     -->
+<!-- ========================================================================= -->
+<div id="dispute-modal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #0b1120; border: 1px solid var(--border-default); border-radius: var(--radius-lg); width: 100%; max-width: 520px; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
+    
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+      <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin: 0;">
+        🚩 Eskalasi & Sengketa Dewan Juri
+      </h3>
+      <button type="button" onclick="closeDisputeModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+
+    <form id="dispute-form" onsubmit="submitDispute(event)" style="padding: 20px;">
+      <input type="hidden" id="dispute-answer-id" value="">
+      <p style="font-size: 0.84rem; color: #cbd5e1; margin: 0 0 14px; line-height: 1.5;">
+        Tandai jawaban ini untuk didiskusikan bersama atau dievaluasi ulang oleh Juri Kepala (Lead Forensic Judge).
+      </p>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #fff; margin-bottom: 6px;">
+          Alasan Eskalasi / Catatan Sengketa:
+        </label>
+        <textarea 
+          id="dispute-reason-input" 
+          rows="3" 
+          placeholder="contoh: Payload eksploitasi tidak lazim, indikasi zero-day baru, atau selisih penilaian tajam antar juri..."
+          style="width: 100%; padding: 10px 12px; background: #070c18; border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.86rem; outline: none;"
+        ></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <button type="button" onclick="removeDispute()" class="btn-secondary" style="color: #f87171; border-color: rgba(239, 68, 68, 0.3); font-size: 0.8rem; padding: 6px 14px;">
+          Batalkan Tanda Eskalasi
+        </button>
+        <button type="submit" class="btn-primary" style="background: #8b5cf6; font-size: 0.82rem; padding: 6px 18px; font-weight: 700;">
+          Simpan Status Eskalasi
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Toggle Blind Grading Mode via URL Parameter
+  function toggleBlindMode() {
+    const currentBlind = document.getElementById('blind-input').value;
+    const newBlind = (currentBlind === '1') ? '0' : '1';
+    document.getElementById('blind-input').value = newBlind;
+    document.getElementById('grading-filter-form').submit();
+  }
+
+  // Toggle Rubric Guidelines Accordion
+  function toggleRubricAccordion(ansId) {
+    const box = document.getElementById('rubric-box-' + ansId);
+    const icon = document.getElementById('rubric-icon-' + ansId);
+    if (box) {
+      if (box.style.display === 'none' || box.style.display === '') {
+        box.style.display = 'block';
+        icon.innerText = '▼';
+      } else {
+        box.style.display = 'none';
+        icon.innerText = '▶';
+      }
+    }
+  }
+
+  // Quick Score Helper
+  function setQuickScore(ansId, val) {
+    const input = document.getElementById('score-input-' + ansId);
+    if (input) {
+      input.value = parseFloat(val).toFixed(2);
+      input.focus();
+    }
+  }
+
+  // Quick Feedback Helper
+  function appendFeedback(ansId, text) {
+    const input = document.getElementById('feedback-input-' + ansId);
+    if (input) {
+      if (input.value.trim().length > 0) {
+        input.value = input.value + ' ' + text;
+      } else {
+        input.value = text;
+      }
+      input.focus();
+    }
+  }
+
+  // Copy Answer Text to Clipboard
+  function copyAnswerText(ansId) {
+    const box = document.getElementById('answer-text-' + ansId);
+    if (box) {
+      navigator.clipboard.writeText(box.innerText.trim());
+      alert('Teks jawaban berhasil disalin ke clipboard.');
+    }
+  }
+
+  // Open Forensic Cadence Modal
+  async function openForensicModal(answerId, candidateLabel) {
+    const modal = document.getElementById('forensic-modal');
+    modal.style.display = 'flex';
+    document.getElementById('forensic-modal-subtitle').innerText = `Jawaban ${candidateLabel} (ID: ${answerId.substring(0, 8)}...)`;
+    
+    const tbody = document.getElementById('forensic-table-body');
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">Sedang menganalisis rekam jejak pengetikan dari database...</td></tr>`;
+
+    try {
+      const res = await fetch(`/manage/grading/${answerId}/history/`);
+      const data = await res.json();
+      
+      if (data.status === 'success') {
+        document.getElementById('forensic-stat-revisions').innerText = data.total_revisions;
+        document.getElementById('forensic-stat-pastes').innerText = data.sudden_paste_alerts + 'x Terdeteksi';
+        document.getElementById('forensic-stat-blur').innerText = data.tab_blur_count + 'x Pelanggaran';
+        document.getElementById('forensic-stat-length').innerText = data.final_length + ' Karakter';
+
+        if (data.logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);">Belum ada riwayat autosave yang tercatat.</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        data.logs.forEach(log => {
+          const deltaStr = (log.delta_chars >= 0 ? '+' : '') + log.delta_chars;
+          const statusBadge = log.is_suspicious_paste 
+            ? `<span class="badge-clean badge-red" style="font-size: 0.7rem;">🚨 Paste Cepat</span>`
+            : `<span class="badge-clean badge-green" style="font-size: 0.7rem;">Normal Ketik</span>`;
+
+          html += `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <td style="padding: 8px 12px; font-weight: 700; color: #fff;">#${log.revision}</td>
+              <td style="padding: 8px 12px; color: var(--text-muted);">${log.saved_at}</td>
+              <td style="padding: 8px 12px; font-family: var(--font-mono); color: ${log.delta_chars > 200 ? '#fbbf24' : '#fff'};">
+                ${log.char_length} (${deltaStr})
+              </td>
+              <td style="padding: 8px 12px; color: var(--text-muted);">${log.time_delta_sec}s</td>
+              <td style="padding: 8px 12px;">${statusBadge}</td>
+              <td style="padding: 8px 12px; font-family: var(--font-mono); font-size: 0.74rem; color: #cbd5e1;">
+                ${escapeHtml(log.snippet)}
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      } else {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Gagal memuat analitik: ${data.message}</td></tr>`;
+      }
+    } catch (e) {
+      console.error(e);
+      tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Terjadi kesalahan jaringan saat memuat forensik.</td></tr>`;
+    }
+  }
+
+  function closeForensicModal() {
+    document.getElementById('forensic-modal').style.display = 'none';
+  }
+
+  // Dispute & Escalation Modal Helpers
+  function toggleDisputeModal(ansId) {
+    document.getElementById('dispute-answer-id').value = ansId;
+    document.getElementById('dispute-modal').style.display = 'flex';
+  }
+
+  function closeDisputeModal() {
+    document.getElementById('dispute-modal').style.display = 'none';
+  }
+
+  async function submitDispute(e) {
+    e.preventDefault();
+    const ansId = document.getElementById('dispute-answer-id').value;
+    const reason = document.getElementById('dispute-reason-input').value.trim();
+
+    const formData = new FormData();
+    formData.append('is_flagged', '1');
+    formData.append('dispute_reason', reason);
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    try {
+      const res = await fetch(`/manage/grading/${ansId}/dispute/`, {
+        method: 'POST',
+        headers: { 
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert(data.message);
+        closeDisputeModal();
+        location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal memperbarui status eskalasi.');
+    }
+  }
+
+  async function removeDispute() {
+    const ansId = document.getElementById('dispute-answer-id').value;
+    const formData = new FormData();
+    formData.append('is_flagged', '0');
+    formData.append('dispute_reason', '');
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    try {
+      const res = await fetch(`/manage/grading/${ansId}/dispute/`, {
+        method: 'POST',
+        headers: { 
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert(data.message);
+        closeDisputeModal();
+        location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal membatalkan eskalasi.');
+    }
+  }
+
+  // Instant AJAX Score Submission without Page Reload
+  async function submitEssayScore(e, answerId) {
+    e.preventDefault();
+    const form = e.target;
+    const scoreInput = form.querySelector('input[name="score"]');
+    const scoreVal = parseFloat(scoreInput.value);
+    const maxVal = parseFloat(scoreInput.max);
+
+    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > maxVal) {
+      alert(`Skor tidak valid. Nilai harus berada di antara 0 dan ${maxVal} poin.`);
+      scoreInput.focus();
+      return;
+    }
+
+    const btn = form.querySelector('.submit-score-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<span>Menyimpan...</span>`;
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+    formData.append('ajax', '1');
+
+    try {
+      const res = await fetch(`/manage/grading/${answerId}/submit/`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        // Update Status Badge on the Card
+        const statusContainer = document.getElementById('eval-status-' + answerId);
+        if (statusContainer) {
+          statusContainer.innerHTML = `
+            <span class="badge-clean badge-green" style="font-size: 0.78rem; padding: 3px 8px;">
+              ✓ Nilai Anda: <strong>${data.score_awarded} Poin</strong>
+            </span>
+            <span class="badge-clean badge-purple code-font" style="font-size: 0.8rem; font-weight: 800; border: 1px solid rgba(139, 92, 246, 0.5);">
+              Rata-Rata: ${data.aggregated_score} Poin
+            </span>
+          `;
+        }
+
+        btn.innerHTML = `<span>✓ Tersimpan!</span>`;
+        btn.style.background = '#059669';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.background = '';
+          btn.disabled = false;
+        }, 1800);
+      } else {
+        alert(data.message || 'Gagal menyimpan nilai.');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan koneksi saat menyimpan penilaian.');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;")
+               .replace(/</g, "&lt;")
+               .replace(/>/g, "&gt;")
+               .replace(/"/g, "&quot;")
+               .replace(/'/g, "&#039;");
+  }
+</script>
+{% endblock %}

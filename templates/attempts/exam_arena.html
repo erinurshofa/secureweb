@@ -1,0 +1,1110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ attempt.competition.title }} — Ujian Berlangsung{% endblock %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* 100vh Zero-Waste Fullscreen Arena */
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #070b14;
+    font-family: var(--font-sans);
+  }
+
+  .arena-viewport-container {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Single Compact Top HUD (48px) */
+  .arena-top-hud {
+    height: 48px;
+    min-height: 48px;
+    background: #0b1120;
+    border-bottom: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 90;
+    gap: 12px;
+  }
+
+  /* Main Two-Column Layout (calc 100vh - 48px) - Left column widened to 295px for zero-clipping */
+  .arena-main-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 295px 1fr;
+    gap: 12px;
+    padding: 10px 14px 12px;
+    height: calc(100vh - 48px);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  /* Left Sidebar: Number Palette & Overview */
+  .arena-sidebar-card {
+    background: #0b1120;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .arena-sidebar-card::-webkit-scrollbar {
+    width: 4px;
+  }
+  .arena-sidebar-card::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .arena-sidebar-card::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+  .arena-sidebar-card::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* 5-Column Question Palette Grid */
+  .palette-grid-clean {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 7px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .palette-item {
+    height: 38px;
+    min-height: 38px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #070c18;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+    padding: 0;
+    user-select: none;
+  }
+
+  .palette-item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+
+  .palette-item.active {
+    background: rgba(37, 99, 235, 0.3) !important;
+    border: 2px solid #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.45), inset 0 0 6px rgba(59, 130, 246, 0.2);
+    font-weight: 800;
+  }
+
+  .palette-item.answered {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border: 1.5px solid #10b981 !important;
+    color: #34d399 !important;
+  }
+
+  .palette-item.answered.active {
+    background: rgba(16, 185, 129, 0.28) !important;
+    border: 2px solid #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.5);
+  }
+
+  .palette-item.flagged {
+    background: rgba(245, 158, 11, 0.2) !important;
+    border: 1.5px solid #f59e0b !important;
+    color: #fbbf24 !important;
+  }
+
+  .palette-item.flagged.active {
+    background: rgba(245, 158, 11, 0.3) !important;
+    border: 2px solid #f59e0b !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+  }
+
+  /* Right Panel: Question & Answers */
+  .arena-question-card {
+    background: #0b1120;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .question-meta-strip {
+    height: 42px;
+    min-height: 42px;
+    background: rgba(15, 23, 42, 0.75);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .question-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .question-scroll-area::-webkit-scrollbar {
+    width: 5px;
+  }
+  .question-scroll-area::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+
+  .question-bottom-strip {
+    height: 52px;
+    min-height: 52px;
+    background: rgba(15, 23, 42, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  /* Compact Options Grid */
+  .mcq-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 9px;
+    margin-top: 6px;
+  }
+
+  .option-card-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #080d1a;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    min-height: 44px;
+  }
+
+  .option-card-compact:hover {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(59, 130, 246, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .option-card-compact.selected {
+    background: rgba(37, 99, 235, 0.16);
+    border-color: #3b82f6;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+  }
+
+  .option-card-compact.selected .option-letter-badge {
+    background: #2563eb;
+    color: #fff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  }
+
+  .option-letter-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.84rem;
+    color: #94a3b8;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  /* Responsive Mobile Overrides */
+  @media (max-width: 900px) {
+    .arena-main-layout {
+      grid-template-columns: 1fr !important;
+      padding: 6px 8px;
+      height: calc(100vh - 48px - 44px);
+    }
+    .arena-sidebar-card {
+      display: none !important;
+    }
+    .mobile-palette-strip {
+      display: flex !important;
+    }
+    .mcq-options-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="arena-viewport-container">
+
+  <!-- Top Command HUD (Fixed 48px, sleek, zero waste) -->
+  <header class="arena-top-hud">
+    <!-- Left: Back button & Title -->
+    <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+      <a href="{% url 'dashboard' %}" class="btn-secondary" style="padding: 4px 10px; min-height: 32px; font-size: 0.78rem; flex-shrink: 0;" title="Kembali ke Beranda">
+        ⬅ Keluar
+      </a>
+      <div style="min-width: 0; display: flex; align-items: center; gap: 8px;">
+        <span class="exam-comp-title" style="font-family: var(--font-heading); font-weight: 700; font-size: 0.98rem; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ attempt.competition.title }}
+        </span>
+        <span class="badge-clean badge-gray hide-mobile" style="font-size: 0.72rem; padding: 2px 8px;">
+          Sesi #{{ attempt.attempt_number }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Center: Countdown Timer & Autosave -->
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <!-- Timer -->
+      <div class="timer-pill" id="timer-box" style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm);">
+        <span style="font-size: 0.95rem;">⏱️</span>
+        <span class="timer-pill-value" id="countdown-timer" style="font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: #ffffff;">00:00:00</span>
+      </div>
+
+      <!-- Autosave Pill -->
+      <div id="autosave-status" style="display: flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 500; color: #34d399; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: var(--radius-full);">
+        <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10b981;"></span>
+        <span id="autosave-text" class="hide-mobile">Tersimpan</span>
+      </div>
+    </div>
+
+    <!-- Right: Progress & Submit Button -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="badge-clean badge-blue hide-mobile code-font" id="answered-counter-top" style="font-size: 0.78rem;">
+        <span id="progress-percentage-text-top">0%</span>
+      </span>
+      <button type="button" onclick="openSubmitModal()" class="btn-primary btn-submit-exam" style="min-height: 34px; padding: 6px 14px; font-size: 0.82rem; background: #2563eb; flex-shrink: 0;">
+        <span>Kumpulkan</span>
+        <span>➔</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Question Quick Strip (Visible on mobile < 900px) -->
+  <div class="mobile-palette-strip" style="display: none; height: 44px; min-height: 44px; background: #0b1120; border-bottom: 1px solid var(--border-subtle); padding: 0 14px; justify-content: space-between; align-items: center;">
+    <button type="button" onclick="openMobilePalette()" class="btn-secondary" style="font-size: 0.8rem; padding: 4px 12px; min-height: 32px;">
+      <span>📋 Daftar Soal</span>
+      <span class="badge-clean badge-blue" id="mobile-answered-badge" style="margin-left: 6px; padding: 2px 6px; font-size: 0.72rem;">0 / {{ questions|length }}</span>
+    </button>
+    <div style="font-size: 0.82rem; color: var(--text-secondary);">
+      Soal: <strong style="color: #60a5fa;" id="mobile-current-indicator">#1</strong> dari {{ questions|length }}
+    </div>
+  </div>
+
+  <!-- Arena Two-Column Layout (Zero Waste, Fits on Screen) -->
+  <div class="arena-main-layout">
+    
+    <!-- Left Column: Number Palette Sidebar (Desktop) -->
+    <aside class="arena-sidebar-card">
+      <!-- Sidebar Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 7px;">
+          <span style="font-size: 0.95rem;">📋</span>
+          <span style="font-size: 0.88rem; font-weight: 700; color: #ffffff; letter-spacing: 0.02em;">Daftar Soal</span>
+        </div>
+        <span class="badge-clean code-font" id="answered-counter" style="font-size: 0.72rem; padding: 2px 7px; background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">
+          0 / {{ questions|length }} Terjawab
+        </span>
+      </div>
+
+      <!-- Compact Progress Bar with Cyan-Blue Gradient -->
+      <div style="margin-bottom: 14px;">
+        <div style="width: 100%; height: 5px; background: #070c18; border-radius: 999px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.06);">
+          <div id="progress-bar-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #06b6d4); border-radius: 999px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+        </div>
+      </div>
+
+      <!-- Number Palette Grid (5 columns, 38px touch targets, zero clipping) -->
+      <div class="palette-grid-clean" id="palette-grid" style="margin-bottom: 14px;">
+        {% for q in questions %}
+          <button 
+            type="button" 
+            class="palette-item {% if forloop.first %}active{% endif %}" 
+            id="palette-btn-{{ q.id }}"
+            onclick="switchQuestion('{{ q.id }}')"
+            title="Pindah ke Soal {{ q.sequence }}"
+          >
+            {{ q.sequence }}
+          </button>
+        {% endfor %}
+      </div>
+
+      <!-- Status Legend (Sleek 2x2 Grid) -->
+      <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: auto;">
+        <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px;">
+          Keterangan Status
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 7px;">
+          <div style="display: flex; align-items: center; gap: 7px; font-size: 0.73rem; color: #cbd5e1; background: rgba(255, 255, 255, 0.02); padding: 5px 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.04);">
+            <span style="width: 10px; height: 10px; border-radius: 2.5px; background: rgba(37, 99, 235, 0.3); border: 1.5px solid #3b82f6; display: inline-block; flex-shrink: 0;"></span>
+            <span>Dibuka</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px; font-size: 0.73rem; color: #cbd5e1; background: rgba(255, 255, 255, 0.02); padding: 5px 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.04);">
+            <span style="width: 10px; height: 10px; border-radius: 2.5px; background: rgba(16, 185, 129, 0.2); border: 1.5px solid #10b981; display: inline-block; flex-shrink: 0;"></span>
+            <span>Terjawab</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px; font-size: 0.73rem; color: #cbd5e1; background: rgba(255, 255, 255, 0.02); padding: 5px 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.04);">
+            <span style="width: 10px; height: 10px; border-radius: 2.5px; background: rgba(245, 158, 11, 0.2); border: 1.5px solid #f59e0b; display: inline-block; flex-shrink: 0;"></span>
+            <span>Ragu-ragu</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px; font-size: 0.73rem; color: #cbd5e1; background: rgba(255, 255, 255, 0.02); padding: 5px 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.04);">
+            <span style="width: 10px; height: 10px; border-radius: 2.5px; background: #070c18; border: 1px solid rgba(255, 255, 255, 0.15); display: inline-block; flex-shrink: 0;"></span>
+            <span>Belum</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Column: Question Workspace Card -->
+    <main style="min-width: 0; height: 100%;">
+      {% for q in questions %}
+        <div class="question-panel arena-question-card" id="question-panel-{{ q.id }}" style="{% if not forloop.first %}display: none;{% endif %}">
+          
+          <!-- Meta Bar (Header 40px) -->
+          <div class="question-meta-strip">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem;">
+              <span class="badge-clean badge-blue" style="font-weight: 700; padding: 2px 8px;">
+                Soal {{ q.sequence }} / {{ questions|length }}
+              </span>
+              <span class="badge-clean {% if q.type == 'MCQ' %}badge-green{% else %}badge-amber{% endif %}" style="padding: 2px 8px;">
+                {{ q.get_type_display }}
+              </span>
+              <span class="code-font" style="color: var(--text-secondary); font-size: 0.78rem;">
+                Bobot: {{ q.points }} Poin
+              </span>
+            </div>
+
+            <button 
+              type="button" 
+              id="flag-btn-{{ q.id }}"
+              onclick="toggleFlag('{{ q.id }}')"
+              class="btn-warning-outline"
+              style="min-height: 28px; padding: 2px 10px; font-size: 0.78rem;"
+            >
+              <span id="flag-icon-{{ q.id }}">🚩</span>
+              <span id="flag-text-{{ q.id }}">Ragu-ragu</span>
+            </button>
+          </div>
+
+          <!-- Question Content & Options (Flex Scroll Area) -->
+          <div class="question-scroll-area">
+            <!-- Question Title -->
+            <h2 style="font-size: 1.15rem; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.35;">
+              {{ q.title }}
+            </h2>
+            
+            <!-- Question Body Text -->
+            <div class="question-body-text" style="font-size: 0.98rem; line-height: 1.6; color: #e2e8f0; background: #090e18; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); white-space: pre-wrap; word-break: break-word;">
+{{ q.body }}
+            </div>
+
+            <!-- Challenge Attachment Section (If present) -->
+            {% if q.attachments.all %}
+              {% for att in q.attachments.all %}
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 14px; gap: 10px;">
+                  <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                    <span style="font-size: 1.1rem; color: #60a5fa;">📁</span>
+                    <span style="font-weight: 600; font-size: 0.86rem; color: #ffffff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                      {{ att.display_filename }}
+                    </span>
+                    <span style="font-size: 0.74rem; color: var(--text-muted);">({{ att.file_size|filesizeformat }})</span>
+                  </div>
+                  <a href="{% url 'download_attachment' att.id %}" target="_blank" class="btn-secondary" style="font-size: 0.78rem; padding: 4px 10px; min-height: 30px; flex-shrink: 0;">
+                    ⬇ Unduh
+                  </a>
+                </div>
+              {% endfor %}
+            {% endif %}
+
+            <!-- Answer Selection Area -->
+            <div style="margin-top: 4px;">
+              <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                Pilihan Jawaban Anda:
+              </div>
+
+              {% if q.type == 'MCQ' %}
+                <!-- Multiple Choice Option Cards (Compact Grid / List) -->
+                <div class="mcq-options-grid">
+                  {% for opt in q.options.all %}
+                    <label 
+                      class="option-card-compact" 
+                      id="opt-label-{{ opt.id }}" 
+                      onclick="selectOption('{{ q.id }}', '{{ opt.id }}')"
+                    >
+                      <div class="option-letter-badge">
+                        {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% elif forloop.counter == 5 %}E{% else %}{{ forloop.counter }}{% endif %}
+                      </div>
+                      <div class="option-text">
+                        {{ opt.option_text }}
+                      </div>
+                    </label>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <!-- Essay Textarea Input -->
+                <div>
+                  <textarea 
+                    id="essay-input-{{ q.id }}"
+                    rows="6"
+                    placeholder="Tuliskan uraian analisis teknis atau langkah penyelesaian Anda di sini..."
+                    style="width: 100%; padding: 12px 14px; background: #090e18; border: 1.5px solid var(--border-default); border-radius: var(--radius-md); color: #ffffff; font-family: var(--font-sans); font-size: 0.94rem; outline: none; line-height: 1.6; resize: vertical;"
+                    onfocus="this.style.borderColor='#3b82f6';"
+                    onblur="this.style.borderColor='var(--border-default)';"
+                    oninput="handleEssayInput('{{ q.id }}')"
+                  ></textarea>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.75rem;">
+                    <span style="color: var(--text-muted);">Tersimpan otomatis saat Anda mengetik.</span>
+                    <span class="code-font" id="essay-counter-{{ q.id }}" style="color: var(--text-secondary); font-weight: 600;">0 Karakter</span>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Bottom Action Toolbar (Fixed 50px at bottom of the card) -->
+          <div class="question-bottom-strip">
+            <button 
+              type="button" 
+              onclick="prevQuestion()" 
+              class="btn-secondary" 
+              style="min-height: 36px; padding: 6px 14px; font-size: 0.82rem;"
+              {% if forloop.first %}disabled style="opacity: 0.35; cursor: not-allowed;"{% endif %}
+            >
+              <span>⬅ Sebelumnya</span>
+            </button>
+
+            <!-- Middle Shortcut Hint -->
+            <div class="hide-mobile" style="font-size: 0.72rem; color: var(--text-muted);">
+              Pintasan: <code style="color: #60a5fa;">1-5</code> Opsi • <code style="color: #60a5fa;">Alt+R</code> Ragu • <code style="color: #60a5fa;">Alt+Panah</code> Navigasi
+            </div>
+
+            <div>
+              {% if not forloop.last %}
+                <button 
+                  type="button" 
+                  onclick="nextQuestion()" 
+                  class="btn-primary"
+                  style="min-height: 36px; padding: 6px 16px; font-size: 0.82rem; background: #2563eb;"
+                >
+                  <span>Selanjutnya ➡</span>
+                </button>
+              {% else %}
+                <button 
+                  type="button" 
+                  onclick="openSubmitModal()" 
+                  class="btn-success"
+                  style="min-height: 36px; padding: 6px 16px; font-size: 0.82rem;"
+                >
+                  <span>Selesai & Kumpulkan ➔</span>
+                </button>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      {% endfor %}
+    </main>
+
+  </div>
+
+</div>
+
+<!-- Mobile Question Palette Drawer (Modal) -->
+<div id="mobile-palette-modal" onclick="if(event.target === this) closeMobilePalette()" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 990; align-items: flex-end; justify-content: center;">
+  <div class="saas-card" style="width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; padding: 24px 20px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid var(--border-default);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">Daftar Nomor Soal</h3>
+      <button onclick="closeMobilePalette()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 4px;">✕</button>
+    </div>
+
+    <!-- Mobile Grid -->
+    <div class="palette-grid-clean" id="mobile-palette-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px;">
+      {% for q in questions %}
+        <button 
+          type="button" 
+          class="palette-item {% if forloop.first %}active{% endif %}" 
+          id="mob-palette-btn-{{ q.id }}"
+          onclick="switchQuestion('{{ q.id }}'); closeMobilePalette();"
+        >
+          {{ q.sequence }}
+        </button>
+      {% endfor %}
+    </div>
+
+    <div style="border-top: 1px solid var(--border-subtle); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; font-size: 0.78rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 14px; height: 14px; border-radius: 3px; background: var(--color-success-subtle); border: 1px solid #10b981;"></div>
+        <span style="color: var(--text-primary);">Sudah Dijawab</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 14px; height: 14px; border-radius: 3px; background: var(--color-warning-subtle); border: 1px solid #f59e0b;"></div>
+        <span style="color: var(--text-primary);">Ragu-ragu / Ditandai</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 14px; height: 14px; border-radius: 3px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default);"></div>
+        <span style="color: var(--text-muted);">Belum Dijawab</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Final Submit Confirmation Modal (Clean SaaS Style) -->
+<div id="submit-modal" onclick="if(event.target === this) closeSubmitModal()" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999; align-items: center; justify-content: center; padding: 20px;">
+  <div class="saas-card" style="max-width: 480px; width: 100%; padding: 32px 28px; text-align: center; border: 1px solid var(--border-default);">
+    
+    <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--color-primary-subtle); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; font-size: 1.8rem;">
+      📝
+    </div>
+    
+    <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; color: #ffffff;">
+      Kumpulkan Jawaban Ujian?
+    </h2>
+    
+    <p style="font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
+      Apakah Anda yakin ingin menyelesaikan sesi ujian ini? Setelah dikumpulkan, seluruh jawaban akan dikunci permanen di server dan Anda tidak dapat mengubahnya lagi.
+    </p>
+
+    <!-- Submission Summary Badge -->
+    <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 16px; border: 1px solid var(--border-default); margin-bottom: 20px; font-size: 0.86rem; text-align: left;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-muted);">Total Soal:</span>
+        <strong style="color: #ffffff;">{{ questions|length }} Soal</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-muted);">Status Terjawab:</span>
+        <strong style="color: #34d399;" id="modal-answered-summary">0 Terjawab</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-muted);">Status Ragu-ragu:</span>
+        <strong style="color: #fbbf24;" id="modal-flagged-summary">0 Ragu-ragu</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Belum Dijawab:</span>
+        <strong style="color: #fca5a5;" id="modal-unanswered-summary">0 Belum</strong>
+      </div>
+    </div>
+
+    <!-- Dynamic Warning if Unanswered Questions Remain -->
+    <div id="modal-unanswered-warning" style="display: none; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 18px; font-size: 0.82rem; color: #fca5a5; text-align: left;">
+      ⚠️ <strong>Perhatian:</strong> Masih ada <span id="modal-unanswered-count" style="font-weight: 700;">0</span> soal yang belum Anda jawab. Jawaban yang kosong akan dihitung 0 poin.
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <form method="POST" action="{% url 'submit_attempt' attempt.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-success" style="width: 100%; min-height: 46px; font-size: 0.96rem;">
+          Ya, Selesaikan & Kumpulkan Jawaban
+        </button>
+      </form>
+      <button type="button" onclick="closeSubmitModal()" class="btn-secondary" style="width: 100%; min-height: 42px;">
+        Periksa Kembali Jawaban
+      </button>
+    </div>
+
+  </div>
+<!-- Critical Time Warning HUD Banner -->
+<div id="critical-time-banner" style="display: none; position: fixed; top: 58px; left: 50%; transform: translateX(-50%); z-index: 995; background: rgba(15, 23, 42, 0.96); border: 2px solid #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.55); border-radius: 8px; padding: 8px 20px; color: #fff; font-weight: 700; font-size: 0.88rem; align-items: center; gap: 10px; transition: all 0.3s ease;">
+  <span id="critical-time-icon" style="font-size: 1.2rem;">🚨</span>
+  <span id="critical-time-text">Peringatan: Sisa waktu ujian kurang dari 5 menit!</span>
+  <button type="button" onclick="document.getElementById('critical-time-banner').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; margin-left: 8px;">✕</button>
+</div>
+
+<!-- Anti-Cheat Integrity Warning Toast -->
+<div id="anticheat-warning-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; z-index: 998; background: rgba(15, 23, 42, 0.96); border: 1.5px solid #f59e0b; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65); border-radius: 8px; padding: 14px 18px; color: #fff; font-size: 0.84rem; max-width: 380px; align-items: center; gap: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+  <span style="font-size: 1.5rem; flex-shrink: 0;">⚠️</span>
+  <div>
+    <div style="font-weight: 700; color: #fbbf24; margin-bottom: 2px;">Peringatan Integritas Ujian</div>
+    <div style="color: #cbd5e1; font-size: 0.78rem; line-height: 1.4;">
+      Anda terdeteksi beralih jendela/tab browser (<strong id="anticheat-count-text">Peringatan #1</strong>). Aktivitas ini otomatis dicatat dalam audit trail.
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const ATTEMPT_ID = "{{ attempt.id }}";
+  const SERVER_DEADLINE = new Date("{{ attempt.server_deadline|date:'c' }}").getTime();
+  const QUESTION_IDS = [{% for q in questions %}"{{ q.id }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+  
+  const initialAnswers = {
+    {% for ans in attempt.answers.all %}
+      "{{ ans.question_id }}": {
+        selected_option_id: "{{ ans.selected_option_id|default:'' }}",
+        essay_text: `{{ ans.essay_text|escapejs }}`,
+        is_flagged: {{ ans.is_flagged_for_review|yesno:'true,false' }}
+      }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  };
+
+  let currentQuestionIndex = 0;
+  let userAnswers = initialAnswers;
+  let essayDebounceTimer = null;
+
+  function loadInitialState() {
+    for (const [qid, data] of Object.entries(initialAnswers)) {
+      if (data.selected_option_id) {
+        const label = document.getElementById('opt-label-' + data.selected_option_id);
+        if (label) label.classList.add('selected');
+        updatePaletteStatus(qid, 'answered');
+      }
+      if (data.essay_text) {
+        const textarea = document.getElementById('essay-input-' + qid);
+        if (textarea) {
+          textarea.value = data.essay_text;
+          document.getElementById('essay-counter-' + qid).innerText = data.essay_text.length + ' Karakter';
+          updatePaletteStatus(qid, 'answered');
+        }
+      }
+      if (data.is_flagged) {
+        setFlagUI(qid, true);
+      }
+    }
+    updateAnsweredCount();
+  }
+
+  // Timer Countdown Server-Enforced & Critical HUD Warnings
+  let hasWarned5m = false;
+  let hasWarned1m = false;
+
+  function showCriticalTimeBanner(msg) {
+    const banner = document.getElementById('critical-time-banner');
+    const text = document.getElementById('critical-time-text');
+    if (banner && text) {
+      text.innerText = msg;
+      banner.style.display = 'flex';
+    }
+  }
+
+  function updateTimer() {
+    const now = new Date().getTime();
+    const distance = SERVER_DEADLINE - now;
+
+    if (distance <= 0) {
+      document.getElementById('countdown-timer').innerText = "00:00:00";
+      const timerBox = document.getElementById('timer-box');
+      if (timerBox) timerBox.classList.add('timer-pill-warning');
+      alert("Batas waktu ujian telah habis. Jawaban Anda otomatis dikumpulkan ke server.");
+      window.location.reload();
+      return;
+    }
+
+    const hours = Math.floor((distance / (1000 * 60 * 60)));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+    const pad = (n) => n < 10 ? '0' + n : n;
+    document.getElementById('countdown-timer').innerText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+    if (distance <= 5 * 60 * 1000) {
+      const timerBox = document.getElementById('timer-box');
+      if (timerBox) timerBox.classList.add('timer-pill-warning');
+      if (!hasWarned5m) {
+        hasWarned5m = true;
+        showCriticalTimeBanner('🚨 Perhatian: Sisa waktu pengerjaan kurang dari 5 menit! Segera lengkapi jawaban Anda.');
+      }
+    }
+
+    if (distance <= 1 * 60 * 1000 && !hasWarned1m) {
+      hasWarned1m = true;
+      showCriticalTimeBanner('🚨 PENTING: Waktu tersisa 1 MENIT! Jawaban akan otomatis dikunci dan dikumpulkan.');
+    }
+  }
+
+  setInterval(updateTimer, 1000);
+  updateTimer();
+
+  // Switch Active Question & Persist to LocalStorage
+  function switchQuestion(qid) {
+    const targetIndex = QUESTION_IDS.indexOf(qid);
+    if (targetIndex === -1) return;
+
+    document.querySelectorAll('.question-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.palette-item').forEach(b => b.classList.remove('active'));
+
+    const panel = document.getElementById('question-panel-' + qid);
+    if (panel) panel.style.display = 'flex';
+    
+    const desktopBtn = document.getElementById('palette-btn-' + qid);
+    const mobBtn = document.getElementById('mob-palette-btn-' + qid);
+    if (desktopBtn) desktopBtn.classList.add('active');
+    if (mobBtn) mobBtn.classList.add('active');
+
+    currentQuestionIndex = targetIndex;
+    const mobIndicator = document.getElementById('mobile-current-indicator');
+    if (mobIndicator) mobIndicator.innerText = '#' + (targetIndex + 1);
+
+    // Persist current question index across page refreshes
+    try {
+      localStorage.setItem('exam_active_q_' + ATTEMPT_ID, qid);
+    } catch (e) {}
+  }
+
+  function nextQuestion() {
+    if (currentQuestionIndex < QUESTION_IDS.length - 1) {
+      switchQuestion(QUESTION_IDS[currentQuestionIndex + 1]);
+    }
+  }
+
+  function prevQuestion() {
+    if (currentQuestionIndex > 0) {
+      switchQuestion(QUESTION_IDS[currentQuestionIndex - 1]);
+    }
+  }
+
+  // Select Option & Autosave
+  function selectOption(qid, optionId) {
+    const container = document.getElementById('question-panel-' + qid);
+    if (container) {
+      container.querySelectorAll('.option-card, .option-card-compact').forEach(l => l.classList.remove('selected'));
+    }
+
+    const selectedLabel = document.getElementById('opt-label-' + optionId);
+    if (selectedLabel) selectedLabel.classList.add('selected');
+
+    if (!userAnswers[qid]) userAnswers[qid] = {};
+    userAnswers[qid].selected_option_id = optionId;
+
+    updatePaletteStatus(qid, 'answered');
+    triggerAutosave(qid, { selected_option_id: optionId });
+  }
+
+  // Essay Input with Debounce 800ms
+  function handleEssayInput(qid) {
+    const text = document.getElementById('essay-input-' + qid).value;
+    document.getElementById('essay-counter-' + qid).innerText = text.length + ' Karakter';
+
+    if (!userAnswers[qid]) userAnswers[qid] = {};
+    userAnswers[qid].essay_text = text;
+
+    if (text.trim().length > 0) {
+      updatePaletteStatus(qid, 'answered');
+    }
+
+    clearTimeout(essayDebounceTimer);
+    essayDebounceTimer = setTimeout(() => {
+      triggerAutosave(qid, { essay_text: text });
+    }, 800);
+  }
+
+  // Flag for review
+  function toggleFlag(qid) {
+    if (!userAnswers[qid]) userAnswers[qid] = {};
+    const newFlag = !userAnswers[qid].is_flagged;
+    userAnswers[qid].is_flagged = newFlag;
+
+    setFlagUI(qid, newFlag);
+    triggerAutosave(qid, { is_flagged: newFlag });
+  }
+
+  function setFlagUI(qid, isFlagged) {
+    const btn = document.getElementById('flag-btn-' + qid);
+    const text = document.getElementById('flag-text-' + qid);
+    const icon = document.getElementById('flag-icon-' + qid);
+    const paletteBtn = document.getElementById('palette-btn-' + qid);
+    const mobPaletteBtn = document.getElementById('mob-palette-btn-' + qid);
+
+    if (isFlagged) {
+      if (btn) {
+        btn.style.background = 'rgba(245, 158, 11, 0.28)';
+        btn.style.borderColor = '#f59e0b';
+      }
+      if (text) text.innerText = 'Ragu-ragu (Ditandai)';
+      if (icon) icon.innerText = '🚩';
+      if (paletteBtn) paletteBtn.classList.add('flagged');
+      if (mobPaletteBtn) mobPaletteBtn.classList.add('flagged');
+    } else {
+      if (btn) {
+        btn.style.background = 'var(--color-warning-subtle)';
+        btn.style.borderColor = 'var(--color-warning-border)';
+      }
+      if (text) text.innerText = 'Tandai Ragu-ragu';
+      if (icon) icon.innerText = '🚩';
+      if (paletteBtn) paletteBtn.classList.remove('flagged');
+      if (mobPaletteBtn) mobPaletteBtn.classList.remove('flagged');
+    }
+  }
+
+  function updatePaletteStatus(qid, statusClass) {
+    const btn = document.getElementById('palette-btn-' + qid);
+    const mobBtn = document.getElementById('mob-palette-btn-' + qid);
+
+    if (statusClass === 'answered') {
+      if (btn) btn.classList.add('answered');
+      if (mobBtn) mobBtn.classList.add('answered');
+    }
+    updateAnsweredCount();
+  }
+
+  function updateAnsweredCount() {
+    let count = 0;
+    let flaggedCount = 0;
+    for (const [qid, data] of Object.entries(userAnswers)) {
+      if (data.selected_option_id || (data.essay_text && data.essay_text.trim().length > 0)) {
+        count++;
+      }
+      if (data.is_flagged) {
+        flaggedCount++;
+      }
+    }
+    const txt = `${count} / ${QUESTION_IDS.length} Terjawab`;
+    const counterEl = document.getElementById('answered-counter');
+    if (counterEl) counterEl.innerText = txt;
+
+    const mobBadge = document.getElementById('mobile-answered-badge');
+    if (mobBadge) mobBadge.innerText = `${count} / ${QUESTION_IDS.length}`;
+
+    const percent = Math.round((count / QUESTION_IDS.length) * 100);
+    const percentEl = document.getElementById('progress-percentage-text');
+    if (percentEl) percentEl.innerText = percent + '%';
+
+    const percentTop = document.getElementById('progress-percentage-text-top');
+    if (percentTop) percentTop.innerText = `${count}/${QUESTION_IDS.length} (${percent}%)`;
+
+    const barFill = document.getElementById('progress-bar-fill');
+    if (barFill) barFill.style.width = percent + '%';
+
+    const unansweredCount = QUESTION_IDS.length - count;
+
+    // Update Modal Summary Breakdown
+    const modalAnswered = document.getElementById('modal-answered-summary');
+    if (modalAnswered) modalAnswered.innerText = `${count} dari ${QUESTION_IDS.length} Soal`;
+
+    const modalFlagged = document.getElementById('modal-flagged-summary');
+    if (modalFlagged) modalFlagged.innerText = `${flaggedCount} Soal`;
+
+    const modalUnanswered = document.getElementById('modal-unanswered-summary');
+    if (modalUnanswered) modalUnanswered.innerText = `${unansweredCount} Soal`;
+
+    const warningBox = document.getElementById('modal-unanswered-warning');
+    const countSpan = document.getElementById('modal-unanswered-count');
+    if (warningBox && countSpan) {
+      if (unansweredCount > 0) {
+        countSpan.innerText = unansweredCount;
+        warningBox.style.display = 'block';
+      } else {
+        warningBox.style.display = 'none';
+      }
+    }
+  }
+
+  // Offline Resilience Queue & Autosave API
+  let offlineQueue = [];
+
+  function queueOfflineAnswer(qid, payload) {
+    offlineQueue = offlineQueue.filter(item => item.qid !== qid);
+    offlineQueue.push({ qid, payload });
+    try {
+      localStorage.setItem('exam_offline_q_' + ATTEMPT_ID, JSON.stringify(offlineQueue));
+    } catch(e) {}
+  }
+
+  function flushOfflineQueue() {
+    const saved = localStorage.getItem('exam_offline_q_' + ATTEMPT_ID);
+    if (saved) {
+      try { offlineQueue = JSON.parse(saved); } catch(e) {}
+    }
+    if (offlineQueue.length === 0) return;
+    const items = [...offlineQueue];
+    offlineQueue = [];
+    localStorage.removeItem('exam_offline_q_' + ATTEMPT_ID);
+    items.forEach(item => triggerAutosave(item.qid, item.payload));
+  }
+
+  window.addEventListener('online', () => {
+    flushOfflineQueue();
+  });
+
+  function triggerAutosave(qid, payload) {
+    const statusText = document.getElementById('autosave-text');
+    const statusContainer = document.getElementById('autosave-status');
+
+    if (!navigator.onLine) {
+      queueOfflineAnswer(qid, payload);
+      if (statusText) statusText.innerText = "Tersimpan Lokal (Offline)";
+      if (statusContainer) {
+        statusContainer.style.background = 'rgba(245, 158, 11, 0.15)';
+        statusContainer.style.borderColor = '#f59e0b';
+        statusContainer.style.color = '#fbbf24';
+      }
+      return;
+    }
+
+    if (statusText) statusText.innerText = "Menyimpan jawaban...";
+
+    fetch(`/api/attempts/${ATTEMPT_ID}/save/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        question_id: qid,
+        ...payload
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        if (statusText) statusText.innerText = "Tersimpan";
+        if (statusContainer) {
+          statusContainer.style.background = 'rgba(16, 185, 129, 0.1)';
+          statusContainer.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+          statusContainer.style.color = '#34d399';
+        }
+      } else {
+        if (statusText) statusText.innerText = "Gagal menyimpan!";
+        if (statusContainer) {
+          statusContainer.style.background = 'var(--color-danger-subtle)';
+          statusContainer.style.color = '#ef4444';
+        }
+      }
+    })
+    .catch(err => {
+      console.warn('Autosave offline fallback:', err);
+      queueOfflineAnswer(qid, payload);
+      if (statusText) statusText.innerText = "Tersimpan Lokal (Offline)";
+      if (statusContainer) {
+        statusContainer.style.background = 'rgba(245, 158, 11, 0.15)';
+        statusContainer.style.borderColor = '#f59e0b';
+        statusContainer.style.color = '#fbbf24';
+      }
+    });
+  }
+
+  // Anti-Cheat & Window Tab-Switching Detection
+  let tabSwitchCount = 0;
+  function handleIntegrityViolation(reason) {
+    tabSwitchCount++;
+    const toast = document.getElementById('anticheat-warning-toast');
+    const countText = document.getElementById('anticheat-count-text');
+    if (countText) countText.innerText = `Peringatan #${tabSwitchCount}`;
+    if (toast) {
+      toast.style.display = 'flex';
+      setTimeout(() => { toast.style.display = 'none'; }, 6000);
+    }
+    
+    // Kirim log audit ke server
+    fetch(`/api/attempts/${ATTEMPT_ID}/integrity-event/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        event: reason,
+        details: { switch_count: tabSwitchCount, timestamp: new Date().toISOString() }
+      })
+    }).catch(() => {});
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      handleIntegrityViolation('TAB_SWITCH');
+    }
+  });
+
+  // Modal Submit Functions
+  function openSubmitModal() {
+    updateAnsweredCount();
+    document.getElementById('submit-modal').style.display = 'flex';
+  }
+  function closeSubmitModal() {
+    document.getElementById('submit-modal').style.display = 'none';
+  }
+
+  // Mobile Palette Drawer Functions
+  function openMobilePalette() {
+    document.getElementById('mobile-palette-modal').style.display = 'flex';
+  }
+  function closeMobilePalette() {
+    document.getElementById('mobile-palette-modal').style.display = 'none';
+  }
+
+  // Keyboard Navigation
+  document.addEventListener('keydown', (e) => {
+    const activeQid = QUESTION_IDS[currentQuestionIndex];
+    if (['1', '2', '3', '4', '5'].includes(e.key) && document.activeElement.tagName !== 'TEXTAREA') {
+      const panel = document.getElementById('question-panel-' + activeQid);
+      if (panel) {
+        const labels = panel.querySelectorAll('.option-card, .option-card-compact');
+        const idx = parseInt(e.key) - 1;
+        if (labels[idx]) labels[idx].click();
+      }
+    }
+    if (e.altKey && e.key.toLowerCase() === 'r') {
+      e.preventDefault();
+      toggleFlag(activeQid);
+    }
+    if (e.altKey && e.key === 'ArrowRight') {
+      e.preventDefault();
+      nextQuestion();
+    }
+    if (e.altKey && e.key === 'ArrowLeft') {
+      e.preventDefault();
+      prevQuestion();
+    }
+  });
+
+  // Initial Load & State Restoration
+  loadInitialState();
+
+  try {
+    const savedActiveQ = localStorage.getItem('exam_active_q_' + ATTEMPT_ID);
+    if (savedActiveQ && QUESTION_IDS.includes(savedActiveQ)) {
+      switchQuestion(savedActiveQ);
+    }
+  } catch(e) {}
+</script>
+{% endblock %}

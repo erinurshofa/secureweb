@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="Platform Ujian dan Kuis Keamanan Siber Berstandar Enterprise Babak Seleksi Hacker">
+  <meta name="theme-color" content="#090d16">
+  <title>{% block title %}Platform Ujian{% endblock %} — Secure Quiz Platform</title>
+  <link rel="stylesheet" href="{% static 'css/cyber-theme.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% block navbar %}
+  <!-- Clean Top Navigation Bar -->
+  <header style="background: var(--bg-surface); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; z-index: 100;">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      
+      <!-- Brand Logo -->
+      <a href="/" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--color-primary); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem;">
+          🛡️
+        </div>
+        <div>
+          <div style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.2;">
+            SECURE<span style="color: var(--color-primary);">QUIZ</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">
+            Babak 1 Kompetisi Keamanan Siber
+          </div>
+        </div>
+      </a>
+
+      <!-- User Menu -->
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        {% if user.is_authenticated %}
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-surface-elevated); padding: 6px 14px; border-radius: var(--radius-full); border: 1px solid var(--border-default);">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-success);"></span>
+            <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-primary);">{{ user.username }}</span>
+            <span class="badge-clean badge-blue" style="font-size: 0.7rem; padding: 2px 8px;">{{ user.get_role_display }}</span>
+          </div>
+
+          {% if user.is_staff or user.is_superuser or user.role != 'PARTICIPANT' %}
+            <a href="{% url 'manage_dashboard' %}" class="btn-primary" style="font-size: 0.82rem; padding: 6px 12px; min-height: 36px; background: #2563eb;">
+              <span>⚡ Admin</span>
+            </a>
+            <a href="/admin/" target="_blank" class="btn-secondary hide-mobile" style="font-size: 0.82rem; padding: 6px 12px; min-height: 36px;">
+              Django ↗
+            </a>
+          {% endif %}
+
+          <a href="{% url 'logout' %}" class="btn-secondary" style="font-size: 0.82rem; padding: 6px 12px; min-height: 36px; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+            Keluar
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}" class="btn-primary" style="font-size: 0.9rem; padding: 8px 18px; min-height: 38px;">
+            Masuk Peserta
+          </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </header>
+{% endblock %}
+
+  <!-- Flash Messages Alert -->
+  {% if messages %}
+    <div style="max-width: 1400px; margin: 16px auto 0; padding: 0 20px;">
+      {% for message in messages %}
+        <div class="saas-card" style="padding: 14px 20px; margin-bottom: 12px; border-left: 4px solid {% if message.tags == 'error' %}var(--color-danger){% elif message.tags == 'success' %}var(--color-success){% else %}var(--color-primary){% endif %}; display: flex; align-items: center; gap: 12px;">
+          <span>{% if message.tags == 'error' %}⚠️{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}</span>
+          <p style="font-size: 0.92rem; color: var(--text-primary); margin: 0;">{{ message }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Main Body Content -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+{% block footer %}
+  <!-- Clean Footer -->
+  <footer style="margin-top: 60px; border-top: 1px solid var(--border-subtle); background: var(--bg-surface); padding: 24px 20px; text-align: center;">
+    <div style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <div style="font-size: 0.84rem; color: var(--text-secondary);">
+        Secure Web Quiz Platform • Sistem Ujian Terenkripsi Berbasis Server
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">
+        Waktu ujian dan penyimpanan jawaban dikelola langsung oleh backend server secara aman.
+      </div>
+    </div>
+  </footer>
+{% endblock %}
+
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+  </script>
+  {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

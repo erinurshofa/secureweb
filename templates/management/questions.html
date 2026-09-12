@@ -1,0 +1,144 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Bank & Manajemen Soal{% endblock %}
+{% block header_title %}Bank & Editor Soal{% endblock %}
+{% block page_heading %}Bank & Manajemen Soal Ujian{% endblock %}
+{% block page_subheading %}Kelola bank soal, opsi pilihan ganda, kunci jawaban, dan berkas lampiran tantangan.{% endblock %}
+
+{% block admin_content %}
+<div class="saas-card" style="padding: 24px; border: 1px solid var(--border-default);">
+
+  <!-- Filter Strip -->
+  <form method="GET" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: var(--bg-body); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+    <div>
+      <select name="competition_id" onchange="this.form.submit()" style="padding: 8px 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.86rem; outline: none;">
+        <option value="">-- Semua Kompetisi --</option>
+        {% for comp in competitions %}
+          <option value="{{ comp.id }}" {% if selected_comp == comp.id|stringformat:'s' %}selected{% endif %}>
+            {{ comp.title }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <select name="type" onchange="this.form.submit()" style="padding: 8px 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.86rem; outline: none;">
+        <option value="">-- Semua Tipe Soal --</option>
+        <option value="MCQ" {% if selected_type == 'MCQ' %}selected{% endif %}>Pilihan Ganda (MCQ)</option>
+        <option value="ESSAY" {% if selected_type == 'ESSAY' %}selected{% endif %}>Soal Essay</option>
+      </select>
+    </div>
+
+    {% if selected_comp or selected_type %}
+      <a href="{% url 'manage_questions' %}" class="btn-secondary" style="padding: 6px 12px; min-height: 34px; font-size: 0.82rem;">
+        Reset Filter ✕
+      </a>
+    {% endif %}
+  </form>
+
+  <!-- Page Action Header: Total Summary & Add Question Button -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <span class="badge-clean badge-blue" style="font-size: 0.88rem; font-weight: 700;">
+        {{ questions|length }} Soal Terdaftar
+      </span>
+      <span class="badge-clean badge-green" style="font-size: 0.82rem;">
+        Total Bobot: 115.0 Poin
+      </span>
+    </div>
+    <a href="{% url 'manage_question_create' %}" class="btn-primary" style="padding: 9px 18px; min-height: 40px; font-size: 0.88rem; background: #2563eb;">
+      <span>+</span> <span>Buat Soal Baru</span>
+    </a>
+  </div>
+
+  <div class="table-scroll-hint">
+    <span>↔</span> Geser tabel ke samping untuk melihat opsi & tombol edit
+  </div>
+
+  <!-- Questions Table -->
+  <div class="table-responsive-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th style="width: 60px;">No</th>
+          <th>Judul & Ringkasan Soal</th>
+          <th>Kompetisi</th>
+          <th>Tipe</th>
+          <th>Bobot</th>
+          <th>Opsi / Lampiran</th>
+          <th>Status</th>
+          <th style="text-align: right;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in questions %}
+          <tr>
+            <td>
+              <span class="badge-clean badge-gray code-font" style="font-weight: 700;">#{{ q.sequence }}</span>
+            </td>
+            <td>
+              <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">
+                {{ q.title }}
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; max-width: 480px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ q.body|truncatechars:100 }}
+              </div>
+            </td>
+            <td style="font-size: 0.82rem; color: var(--text-secondary);">
+              {{ q.competition.title }}
+            </td>
+            <td>
+              <span class="badge-clean {% if q.type == 'MCQ' %}badge-green{% else %}badge-amber{% endif %}">
+                {{ q.get_type_display }}
+              </span>
+            </td>
+            <td>
+              <span class="code-font" style="font-weight: 700; color: #60a5fa;">{{ q.points }} Poin</span>
+            </td>
+            <td style="font-size: 0.8rem; color: var(--text-muted);">
+              {% if q.type == 'MCQ' %}
+                {{ q.options.count }} Pilihan
+              {% else %}
+                -
+              {% endif %}
+              {% if q.attachments.exists %}
+                <span class="badge-clean badge-blue" style="font-size: 0.7rem; padding: 2px 6px; margin-left: 4px;">📎 {{ q.attachments.count }} File</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge-clean {% if q.status == 'APPROVED' %}badge-green{% else %}badge-gray{% endif %}" style="font-size: 0.72rem;">
+                {{ q.get_status_display }}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                <a href="{% url 'manage_question_edit' q.id %}" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem;">
+                  ✏ Edit
+                </a>
+                <form method="POST" action="{% url 'manage_question_delete' q.id %}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus soal ini?');" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                    🗑 Hapus
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 36px;">
+              Belum ada soal pada filter ini. Klik <strong>"+ Buat Soal Baru"</strong> untuk menambahkan soal.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Floating Action Button for Mobile -->
+<a href="{% url 'manage_question_create' %}" class="fab-mobile show-mobile-only" title="Buat Soal Baru">
+  +
+</a>
+{% endblock %}

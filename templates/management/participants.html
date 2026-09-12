@@ -1,0 +1,135 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Manajemen Akun Peserta{% endblock %}
+{% block header_title %}Peserta & Akun{% endblock %}
+{% block page_heading %}Manajemen Peserta & Akun Lomba{% endblock %}
+{% block page_subheading %}Kelola kredensial login peserta dan reset kata sandi secara instan tanpa reload.{% endblock %}
+
+{% block admin_content %}
+<div class="saas-card" style="padding: 24px 20px; border: 1px solid var(--border-default);">
+  
+  <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 16px;">
+    <span class="badge-clean badge-blue" style="font-size: 0.84rem;">
+      {{ participants|length }} Peserta Terdaftar
+    </span>
+  </div>
+
+  <div class="table-scroll-hint">
+    <span>↔</span> Geser tabel ke samping untuk melihat tombol reset password
+  </div>
+
+  <div class="table-responsive-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Nama Pengguna (Username)</th>
+          <th>Asal Institusi / Tim</th>
+          <th>Jumlah Attempt</th>
+          <th>IP Terakhir</th>
+          <th>Status Akun</th>
+          <th style="text-align: right;">Aksi Cepat</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in participants %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: #fff; font-size: 0.94rem;">
+                {{ p.username }}
+              </div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">
+                {{ p.email|default:"Tidak ada email" }}
+              </div>
+            </td>
+            <td style="font-size: 0.84rem; color: var(--text-secondary);">
+              {{ p.institution|default:"Independen" }}
+            </td>
+            <td>
+              <span class="badge-clean badge-gray code-font">
+                {{ p.attempts_count }} Sesi Ujian
+              </span>
+            </td>
+            <td style="font-size: 0.8rem; color: var(--text-muted);">
+              {{ p.last_login_ip|default:"-" }}
+            </td>
+            <td>
+              {% if p.is_active %}
+                <span class="badge-clean badge-green" style="font-size: 0.74rem;">Aktif</span>
+              {% else %}
+                <span class="badge-clean badge-amber" style="font-size: 0.74rem;">Nonaktif</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <button 
+                type="button" 
+                id="reset-btn-{{ p.id }}"
+                onclick="resetPasswordAjax('{{ p.id }}', '{{ p.username }}')" 
+                class="btn-secondary" 
+                style="padding: 4px 12px; min-height: 32px; font-size: 0.78rem; border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;"
+              >
+                🔑 Reset Password (admin123)
+              </button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">
+              Belum ada peserta terdaftar dalam sistem.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Instant Password Reset without Page Reload
+  async function resetPasswordAjax(userId, username) {
+    if (!confirm(`Reset kata sandi peserta "${username}" menjadi "admin123"?`)) {
+      return;
+    }
+
+    const btn = document.getElementById('reset-btn-' + userId);
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Mereset...';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('ajax', '1');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+      const res = await fetch(`/manage/participants/${userId}/reset-password/`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        btn.innerHTML = '✓ Password Direset (admin123)';
+        btn.style.borderColor = '#10b981';
+        btn.style.color = '#34d399';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.borderColor = '';
+          btn.style.color = '';
+          btn.disabled = false;
+        }, 3000);
+      } else {
+        alert(data.message || 'Gagal mereset password.');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Terjadi kesalahan koneksi.');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

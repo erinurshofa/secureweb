@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Masuk — Portal Ujian{% endblock %}
+
+{% block content %}
+<div style="min-height: calc(100vh - 160px); display: flex; align-items: center; justify-content: center; padding: 24px 16px;">
+  <div class="saas-card" style="width: 100%; max-width: 440px; padding: 36px 32px; border: 1px solid var(--border-default);">
+    
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 28px;">
+      <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: var(--color-primary-subtle); border: 1px solid rgba(59, 130, 246, 0.3); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; font-size: 1.4rem;">
+        🔐
+      </div>
+      <h1 style="font-size: 1.5rem; margin-bottom: 6px;">Masuk ke Portal Ujian</h1>
+      <p style="font-size: 0.9rem; color: var(--text-secondary);">Gunakan akun peserta resmi Anda untuk mengakses soal</p>
+    </div>
+
+    <!-- Login Form -->
+    <form method="POST" action="{% url 'login' %}">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 18px;">
+        <label for="username" style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+          Nama Pengguna (Username)
+        </label>
+        <input 
+          type="text" 
+          id="username" 
+          name="username" 
+          required 
+          autocomplete="username"
+          placeholder="contoh: admin atau hacker_one"
+          style="width: 100%; min-height: 46px; padding: 10px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-family: var(--font-sans); font-size: 0.95rem; outline: none; transition: var(--transition-fast);"
+          onfocus="this.style.borderColor='var(--color-primary)'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.2)';"
+          onblur="this.style.borderColor='var(--border-default)'; this.style.boxShadow='none';"
+        >
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <label for="password" style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+          Kata Sandi (Password)
+        </label>
+        <div style="position: relative;">
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required 
+            autocomplete="current-password"
+            placeholder="Masukkan kata sandi"
+            style="width: 100%; min-height: 46px; padding: 10px 42px 10px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-family: var(--font-sans); font-size: 0.95rem; outline: none; transition: var(--transition-fast);"
+            onfocus="this.style.borderColor='var(--color-primary)'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.2)';"
+            onblur="this.style.borderColor='var(--border-default)'; this.style.boxShadow='none';"
+          >
+          <button 
+            type="button" 
+            onclick="togglePassword()" 
+            style="position: absolute; right: 12px; top: 12px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px;"
+            title="Lihat / Sembunyikan Password"
+          >
+            <span id="eye-icon">👁️</span>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" style="width: 100%; min-height: 46px; font-size: 0.96rem;">
+        Masuk Sekarang ➔
+      </button>
+    </form>
+
+    <!-- Quick Demo Logins -->
+    <div style="margin-top: 24px; padding: 14px; background: var(--bg-body); border: 1px dashed var(--border-default); border-radius: var(--radius-md);">
+      <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">
+        Akun Bawaan untuk Uji Coba:
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button 
+          type="button" 
+          onclick="fillCreds('admin', 'admin123')"
+          class="btn-secondary" 
+          style="font-size: 0.78rem; padding: 4px 10px; min-height: 32px;"
+        >
+          Isi Admin (admin)
+        </button>
+        <button 
+          type="button" 
+          onclick="fillCreds('hacker_one', 'admin123')"
+          class="btn-secondary" 
+          style="font-size: 0.78rem; padding: 4px 10px; min-height: 32px;"
+        >
+          Isi Peserta (hacker_one)
+        </button>
+      </div>
+    </div>
+
+    <!-- Security Footer Note -->
+    <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border-subtle); font-size: 0.76rem; color: var(--text-muted); text-align: center;">
+      🔒 Dilindungi sistem sesi server dan verifikasi anti-tampering
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function togglePassword() {
+    const input = document.getElementById('password');
+    const icon = document.getElementById('eye-icon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.innerText = '🙈';
+    } else {
+      input.type = 'password';
+      icon.innerText = '👁️';
+    }
+  }
+
+  function fillCreds(u, p) {
+    document.getElementById('username').value = u;
+    document.getElementById('password').value = p;
+  }
+</script>
+{% endblock %}

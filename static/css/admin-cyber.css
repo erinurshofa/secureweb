@@ -1,0 +1,336 @@
+/* ==========================================================================
+   SECUREQUIZ — Clean SaaS Admin Theme for Django Admin
+   Professional, High Contrast, Calm & Zero Eye Strain
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+:root {
+  --admin-bg-body: #090d16;
+  --admin-bg-surface: #0f172a;
+  --admin-bg-card: #1e293b;
+  --admin-bg-hover: #243248;
+  
+  --admin-border-subtle: #1e293b;
+  --admin-border-default: #334155;
+  --admin-border-focus: #3b82f6;
+  
+  --admin-primary: #3b82f6;
+  --admin-primary-hover: #2563eb;
+  --admin-success: #10b981;
+  --admin-amber: #f59e0b;
+  --admin-crimson: #ef4444;
+
+  --font-heading: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+/* Global Base */
+html, body {
+  background-color: var(--admin-bg-body) !important;
+  color: var(--text-main) !important;
+  font-family: var(--font-body) !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+#header {
+  background: #0b1120 !important;
+  border-bottom: 1px solid var(--admin-border-default) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  padding: 14px 24px !important;
+}
+
+#branding h1, #branding h1 a {
+  color: #fff !important;
+  font-family: var(--font-heading) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em;
+}
+
+#user-tools {
+  font-size: 0.84rem !important;
+  color: var(--text-muted) !important;
+  font-family: var(--font-body) !important;
+}
+
+#user-tools a {
+  color: #60a5fa !important;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 4px 10px;
+  background: rgba(59, 130, 246, 0.12);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  transition: all 0.18s ease;
+}
+
+#user-tools a:hover {
+  background: rgba(59, 130, 246, 0.25);
+  color: #fff !important;
+}
+
+/* Breadcrumbs */
+div.breadcrumbs {
+  background: #0f172a !important;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  padding: 10px 24px !important;
+  font-size: 0.82rem !important;
+  color: var(--text-muted) !important;
+}
+
+div.breadcrumbs a {
+  color: #60a5fa !important;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Modules & Cards */
+.module {
+  background: var(--admin-bg-surface) !important;
+  border: 1px solid var(--admin-border-default) !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden;
+  margin-bottom: 24px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.module h2, .module caption {
+  background: var(--admin-bg-card) !important;
+  color: #ffffff !important;
+  font-family: var(--font-heading) !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  padding: 12px 18px !important;
+  border-bottom: 1px solid var(--admin-border-default) !important;
+  text-align: left;
+}
+
+/* Tables */
+table {
+  width: 100% !important;
+  background: transparent !important;
+  border-collapse: collapse !important;
+}
+
+thead th {
+  background: var(--admin-bg-card) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.76rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--admin-border-default) !important;
+}
+
+tbody td, tbody th {
+  background: transparent !important;
+  color: var(--text-main) !important;
+  font-size: 0.88rem !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--admin-border-subtle) !important;
+  vertical-align: middle !important;
+}
+
+tbody tr:hover td, tbody tr:hover th {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Forms, Inputs & Select Dropdowns */
+.form-row {
+  padding: 14px 18px !important;
+  border-bottom: 1px solid var(--admin-border-subtle) !important;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+}
+
+.form-row label {
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  min-width: 160px !important;
+  float: none !important;
+  margin-bottom: 0 !important;
+}
+
+input[type="text"], input[type="password"], input[type="email"], input[type="url"],
+input[type="number"], textarea {
+  background: var(--admin-bg-body) !important;
+  border: 1px solid var(--admin-border-default) !important;
+  border-radius: var(--radius-sm) !important;
+  color: #ffffff !important;
+  padding: 8px 14px !important;
+  font-size: 0.92rem !important;
+  line-height: 1.5 !important;
+  min-height: 40px !important;
+  box-sizing: border-box !important;
+  font-family: var(--font-body) !important;
+  outline: none !important;
+  transition: all 0.18s ease;
+}
+
+textarea {
+  min-height: 100px !important;
+  height: auto !important;
+  width: 100% !important;
+  max-width: 760px !important;
+}
+
+/* Custom Select Dropdowns - Fixed Vertical Clipping & Clear Contrast */
+select, 
+.vSelectField,
+.aligned select,
+#content-main select,
+.form-row select, 
+fieldset select {
+  background-color: #0b1120 !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 16px 16px !important;
+  border: 1.5px solid var(--admin-border-default) !important;
+  border-radius: var(--radius-sm) !important;
+  color: #ffffff !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.92rem !important;
+  line-height: normal !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 4px 36px 4px 14px !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+  outline: none !important;
+  cursor: pointer !important;
+  min-width: 320px !important;
+  max-width: 100% !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  transition: all 0.18s ease;
+}
+
+/* Select Dropdown Options */
+select option, 
+.vSelectField option,
+.aligned select option,
+.form-row select option,
+fieldset select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 10px 14px !important;
+  font-size: 0.92rem !important;
+  line-height: 1.6 !important;
+  min-height: 36px !important;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--admin-primary) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Related Widget Wrapper Icons (Add, Edit, View next to select) */
+.related-widget-wrapper {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  max-width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.related-widget-wrapper-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: var(--admin-bg-surface) !important;
+  border: 1px solid var(--admin-border-default) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0 !important;
+  transition: all 0.18s ease;
+}
+
+.related-widget-wrapper-link:hover {
+  background: var(--admin-bg-hover) !important;
+  border-color: var(--admin-primary) !important;
+}
+
+/* Buttons */
+.button, input[type="submit"], .submit-row input {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 18px !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease;
+  text-transform: none !important;
+}
+
+.button:hover, input[type="submit"]:hover, .submit-row input:hover {
+  background: var(--admin-primary-hover) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35) !important;
+}
+
+.button.default, input[type="submit"].default {
+  background: #2563eb !important;
+}
+
+/* Filter Sidebar */
+#changelist-filter {
+  background: var(--admin-bg-surface) !important;
+  border-left: 1px solid var(--admin-border-default) !important;
+  padding: 16px !important;
+}
+
+#changelist-filter h2 {
+  background: transparent !important;
+  color: #ffffff !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  padding: 0 0 8px 0 !important;
+  border-bottom: 1px solid var(--admin-border-subtle) !important;
+}
+
+#changelist-filter a {
+  color: var(--text-muted) !important;
+  text-decoration: none !important;
+}
+
+#changelist-filter li.selected a {
+  color: #60a5fa !important;
+  font-weight: 700 !important;
+}
+
+/* Pagelinks */
+.paginator {
+  background: var(--admin-bg-surface) !important;
+  border-top: 1px solid var(--admin-border-default) !important;
+  color: var(--text-muted) !important;
+  padding: 10px 16px !important;
+}
+
+.paginator a {
+  color: #60a5fa !important;
+}

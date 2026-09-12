@@ -1,0 +1,651 @@
+/* ==========================================================================
+   SECUREQUIZ — Modern Clean SaaS Design System (Linear / GitHub / LeetCode)
+   Focused on Maximum Readability, Calm Ergonomics & Zero Eye Strain
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+:root {
+  /* Surface & Backgrounds (Soft Dark Navy/Slate) */
+  --bg-body: #090d16;
+  --bg-surface: #0f172a;
+  --bg-surface-elevated: #1e293b;
+  --bg-surface-hover: #243248;
+  --bg-surface-subtle: rgba(255, 255, 255, 0.03);
+
+  /* Clean Borders */
+  --border-subtle: #1e293b;
+  --border-default: #334155;
+  --border-focus: #3b82f6;
+
+  /* Professional Color Accents (No harsh neon) */
+  --color-primary: #3b82f6;        /* Professional Blue */
+  --color-primary-hover: #2563eb;
+  --color-primary-subtle: rgba(59, 130, 246, 0.12);
+
+  --color-success: #10b981;        /* Soft Emerald */
+  --color-success-subtle: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.3);
+
+  --color-warning: #f59e0b;        /* Soft Amber */
+  --color-warning-subtle: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+
+  --color-danger: #ef4444;         /* Soft Crimson */
+  --color-danger-subtle: rgba(239, 68, 68, 0.12);
+
+  /* Typography Colors (High Contrast, WCAG AAA) */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+
+  /* Font Families */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', var(--font-sans);
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radii & Shadows */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-dropdown: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --transition-fast: all 0.18s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-body);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+
+.code-font {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Clean SaaS Cards */
+.saas-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-fast);
+}
+
+.saas-card:hover {
+  border-color: var(--border-default);
+}
+
+/* Button System (Spacious, Accessible, Min 44px) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.94rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  border-color: var(--text-muted);
+}
+
+.btn-warning-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  background: var(--color-warning-subtle);
+  color: #fbbf24;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-warning-border);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.btn-warning-outline:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.22);
+}
+
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 22px;
+  background: var(--color-success);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.94rem;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+/* Badges & Chips */
+.badge-clean {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-blue {
+  background: var(--color-primary-subtle);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-green {
+  background: var(--color-success-subtle);
+  color: #34d399;
+  border: 1px solid var(--color-success-border);
+}
+
+.badge-amber {
+  background: var(--color-warning-subtle);
+  color: #fbbf24;
+  border: 1px solid var(--color-warning-border);
+}
+
+.badge-gray {
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+}
+
+/* Exam Sticky Header (Quiet, Calm & Focused) */
+.exam-top-bar {
+  background: #0b1120;
+  border-bottom: 1px solid var(--border-default);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  padding: 12px 24px;
+}
+
+.timer-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.timer-pill-value {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.timer-pill-warning {
+  border-color: var(--color-danger) !important;
+  color: #fca5a5 !important;
+  background: var(--color-danger-subtle) !important;
+}
+
+/* Question Palette Grid (Clean, Familiar, CAT BKN / LeetCode Style) */
+.palette-grid-clean {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.palette-item {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.palette-item:hover {
+  background: var(--bg-surface-hover);
+  color: #fff;
+  border-color: var(--text-muted);
+}
+
+.palette-item.active {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-subtle) !important;
+  color: #60a5fa !important;
+  font-weight: 700;
+  outline: 2px solid var(--color-primary);
+}
+
+.palette-item.answered {
+  background: var(--color-success-subtle);
+  border-color: var(--color-success);
+  color: #34d399;
+}
+
+.palette-item.flagged {
+  background: var(--color-warning-subtle);
+  border-color: var(--color-warning);
+  color: #fbbf24;
+}
+
+/* MCQ Option Cards (Big, Clean, Comfortable to Read & Click) */
+.option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  min-height: 56px;
+  background: var(--bg-surface-elevated);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.option-card:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--text-muted);
+}
+
+.option-card.selected {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+}
+
+.option-letter-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: var(--transition-fast);
+}
+
+.option-card.selected .option-letter-badge {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.option-text {
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Question Body Presentation (Clear & Spacious) */
+.question-body-text {
+  font-size: 1.12rem;
+  line-height: 1.8;
+  color: #f1f5f9;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 992px) {
+  .exam-container-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .exam-sidebar-desktop {
+    display: none !important;
+  }
+
+  .mobile-palette-strip {
+    display: flex !important;
+  }
+
+  .exam-top-bar {
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .exam-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .exam-top-bar-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .option-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .option-text {
+    font-size: 0.98rem;
+  }
+}
+
+/* Responsive Grid Utilities for Management & Dashboard */
+.grid-kpi {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.grid-2col-responsive {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+}
+
+.grid-competitions-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.form-grid-3col {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .grid-kpi {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-2col-responsive {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-kpi {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .grid-competitions-responsive {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .form-grid-3col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   Mobile-First Blindspot-Free Design System Utilities
+   ========================================================================== */
+
+/* Universal Visibility Utilities */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  .show-mobile-only {
+    display: flex !important;
+  }
+  .show-mobile-block {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .show-mobile-only,
+  .show-mobile-block,
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+/* Mobile Bottom Navigation Bar for Admin Panel */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(11, 17, 32, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 120;
+  padding: 0 4px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.68rem;
+  font-weight: 500;
+  gap: 3px;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.mobile-nav-tab.active {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.mobile-nav-tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 0 0 2px 2px;
+  box-shadow: 0 0 8px #3b82f6;
+}
+
+.mobile-nav-tab-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+/* Table Responsiveness & Sticky First Column */
+.table-responsive-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+}
+
+.table-scroll-hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  width: fit-content;
+}
+
+@media (max-width: 768px) {
+  .table-scroll-hint {
+    display: inline-flex;
+  }
+}
+
+/* Touch Friendly Targets (No fat-finger issues) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Floating Action Button (FAB) for Mobile Quick Creation */
+.fab-mobile {
+  position: fixed;
+  bottom: 74px;
+  right: 18px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 110;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.fab-mobile:active {
+  transform: scale(0.92);
+}
+
+

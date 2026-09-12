@@ -1,0 +1,314 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Ringkasan Eksekutif{% endblock %}
+{% block header_title %}Ringkasan Eksekutif{% endblock %}
+{% block page_heading %}Ringkasan Eksekutif & Kontrol Babak Ujian{% endblock %}
+{% block page_subheading %}Pemantauan real-time aktivitas peserta, sesi ujian, dan status kompetisi.{% endblock %}
+
+{% block admin_content %}
+<!-- KPI Metrics Grid (Real-time Auto-Synced) -->
+<div class="grid-kpi" style="margin-bottom: 28px;">
+  
+  <div class="stat-kpi-card">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">
+      Total Peserta Terdaftar
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" id="kpi-total-participants" style="font-size: 2.2rem; font-weight: 800; color: #ffffff;">{{ total_participants }}</span>
+      <span style="font-size: 0.8rem; color: #60a5fa;">Peserta</span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Role PARTICIPANT aktif</div>
+  </div>
+
+  <div class="stat-kpi-card" style="border-left: 3px solid #3b82f6;">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">
+      Ujian Sedang Berlangsung
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" id="kpi-active-attempts" style="font-size: 2.2rem; font-weight: 800; color: #60a5fa;">{{ active_attempts }}</span>
+      <span style="font-size: 0.8rem; color: #60a5fa;">Sesi Live</span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Sedang mengerjakan soal</div>
+  </div>
+
+  <div class="stat-kpi-card" style="border-left: 3px solid #10b981;">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">
+      Ujian Telah Dikumpulkan
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" id="kpi-completed-attempts" style="font-size: 2.2rem; font-weight: 800; color: #34d399;">{{ completed_attempts }}</span>
+      <span style="font-size: 0.8rem; color: #34d399;">Selesai</span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Terkunci & tersimpan</div>
+  </div>
+
+  <div class="stat-kpi-card" style="border-left: 3px solid #f59e0b;">
+    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">
+      Rata-rata Nilai Peserta
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span class="code-font" id="kpi-avg-score" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24;">{{ avg_score }}</span>
+      <span style="font-size: 0.8rem; color: #fbbf24;">Poin</span>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">Akumulasi otomatis</div>
+  </div>
+
+</div>
+
+<!-- Kontrol Status Kompetisi (Realtime AJAX Switch) -->
+<div class="saas-card" style="padding: 24px; margin-bottom: 28px; border: 1px solid var(--border-default);">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff;">Manajemen & Jadwal Kompetisi</h2>
+      <p style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 2px;">
+        Kendali langsung status babak tanpa reload: Buka ujian, Bekukan (Freeze), atau Selesaikan.
+      </p>
+    </div>
+    <span class="badge-clean badge-blue">{{ competitions|length }} Babak Terkonfigurasi</span>
+  </div>
+
+  <div class="grid-competitions-responsive">
+    {% for comp in competitions %}
+      <div id="manage-comp-card-{{ comp.id }}" style="background: var(--bg-surface-elevated); border-radius: var(--radius-md); padding: 20px; border: 1px solid var(--border-default);">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px;">
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff;">{{ comp.title }}</h3>
+            <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 4px;">
+              ⏱ Durasi: <strong>{{ comp.duration_minutes }} Menit</strong> • 📝 {{ comp.questions_count }} Soal • 👥 {{ comp.participants_count }} Peserta
+            </div>
+          </div>
+          <span class="badge-clean comp-status-badge {% if comp.status == 'OPEN' %}badge-green{% elif comp.status == 'FROZEN' %}badge-amber{% elif comp.status == 'CLOSED' %}badge-gray{% else %}badge-blue{% endif %}" style="font-size: 0.8rem;">
+            {{ comp.get_status_display }}
+          </span>
+        </div>
+
+        <div style="background: var(--bg-body); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.76rem; color: var(--text-muted); margin-bottom: 16px; border: 1px solid var(--border-subtle);">
+          Jadwal: {{ comp.start_time|date:"d M Y, H:i" }} WIB — {{ comp.end_time|date:"d M Y, H:i" }} WIB
+        </div>
+
+        <!-- Quick Action Buttons via AJAX -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" onclick="updateCompStatus('{{ comp.id }}', 'OPEN')" class="btn-primary" style="padding: 6px 12px; min-height: 34px; font-size: 0.8rem; background: #059669;">
+            ▶ Buka Ujian
+          </button>
+          
+          <button type="button" onclick="updateCompStatus('{{ comp.id }}', 'FROZEN')" class="btn-secondary" style="padding: 6px 12px; min-height: 34px; font-size: 0.8rem; border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+            ❄ Bekukan (Freeze)
+          </button>
+
+          <button type="button" onclick="updateCompStatus('{{ comp.id }}', 'CLOSED')" class="btn-secondary" style="padding: 6px 12px; min-height: 34px; font-size: 0.8rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+            ⏹ Tutup Babak
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- 2-Column Grid: Recent Exam Attempts & Live Audit Logs -->
+<div class="grid-2col-responsive">
+  
+  <!-- Col 1: Recent Exam Attempts -->
+  <div class="saas-card" style="padding: 22px; border: 1px solid var(--border-default);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div>
+        <h2 style="font-size: 1.05rem; font-weight: 700; color: #fff;">Sesi Ujian Peserta Terbaru</h2>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">Pemantauan status ujian real-time</div>
+      </div>
+      <a href="{% url 'manage_attempts' %}" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem;">
+        Lihat Semua ➔
+      </a>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Peserta</th>
+            <th>Status</th>
+            <th>Mulai</th>
+            <th>Nilai</th>
+          </tr>
+        </thead>
+        <tbody id="recent-attempts-tbody">
+          {% for att in recent_attempts %}
+            <tr>
+              <td>
+                <div style="font-weight: 600; color: #fff;">{{ att.participant.username }}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Attempt #{{ att.attempt_number }}</div>
+              </td>
+              <td>
+                <span class="badge-clean {% if att.status == 'IN_PROGRESS' %}badge-blue{% elif att.status == 'SUBMITTED' %}badge-green{% else %}badge-amber{% endif %}" style="font-size: 0.72rem;">
+                  {{ att.get_status_display }}
+                </span>
+              </td>
+              <td style="font-size: 0.8rem; color: var(--text-secondary);">
+                {{ att.start_time|date:"H:i:s" }} WIB
+              </td>
+              <td>
+                <span class="code-font" style="font-weight: 700; color: #34d399;">
+                  {{ att.grade.total_score|default:"-" }}
+                </span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                Belum ada sesi ujian peserta.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Col 2: Recent Audit Activity -->
+  <div class="saas-card" style="padding: 22px; border: 1px solid var(--border-default);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div>
+        <h2 style="font-size: 1.05rem; font-weight: 700; color: #fff;">Security Audit Live Feed</h2>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">Aktivitas keamanan & sesi</div>
+      </div>
+      <a href="{% url 'manage_audit' %}" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem;">
+        Log Penuh ➔
+      </a>
+    </div>
+
+    <div id="recent-audits-container" style="display: flex; flex-direction: column; gap: 10px;">
+      {% for log in recent_audits %}
+        <div style="background: var(--bg-surface-elevated); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+          <div>
+            <div style="font-weight: 600; color: #ffffff;">
+              {{ log.user.username|default:"Anonim" }}
+              <span class="badge-clean badge-gray" style="font-size: 0.68rem; padding: 2px 6px; margin-left: 6px;">{{ log.get_event_type_display }}</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+              IP: {{ log.ip_address }}
+            </div>
+          </div>
+          <div class="code-font" style="font-size: 0.72rem; color: var(--text-secondary);">
+            {{ log.created_at|date:"H:i:s" }}
+          </div>
+        </div>
+      {% empty %}
+        <div style="text-align: center; color: var(--text-muted); padding: 24px;">
+          Belum ada rekaman log audit.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Real-time Dashboard Auto-Sync (No Refresh Needed)
+  async function syncDashboardStats() {
+    try {
+      const res = await fetch('/manage/api/live-stats/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === 'success') {
+        // Update KPI
+        if (data.kpi) {
+          document.getElementById('kpi-total-participants').innerText = data.kpi.total_participants;
+          document.getElementById('kpi-active-attempts').innerText = data.kpi.active_attempts;
+          document.getElementById('kpi-completed-attempts').innerText = data.kpi.completed_attempts;
+          document.getElementById('kpi-avg-score').innerText = data.kpi.avg_score;
+        }
+
+        // Update Recent Attempts Table
+        if (data.recent_attempts && data.recent_attempts.length > 0) {
+          const tbody = document.getElementById('recent-attempts-tbody');
+          tbody.innerHTML = data.recent_attempts.map(att => {
+            const badgeClass = att.status === 'IN_PROGRESS' ? 'badge-blue' : (att.status === 'SUBMITTED' ? 'badge-green' : 'badge-amber');
+            return `
+              <tr>
+                <td>
+                  <div style="font-weight: 600; color: #fff;">${att.username}</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted);">Attempt #${att.attempt_number}</div>
+                </td>
+                <td>
+                  <span class="badge-clean ${badgeClass}" style="font-size: 0.72rem;">
+                    ${att.status_display}
+                  </span>
+                </td>
+                <td style="font-size: 0.8rem; color: var(--text-secondary);">
+                  ${att.start_time} WIB
+                </td>
+                <td>
+                  <span class="code-font" style="font-weight: 700; color: #34d399;">
+                    ${att.score}
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // Update Recent Audits List
+        if (data.recent_audits && data.recent_audits.length > 0) {
+          const container = document.getElementById('recent-audits-container');
+          container.innerHTML = data.recent_audits.map(log => `
+            <div style="background: var(--bg-surface-elevated); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+              <div>
+                <div style="font-weight: 600; color: #ffffff;">
+                  ${log.username}
+                  <span class="badge-clean badge-gray" style="font-size: 0.68rem; padding: 2px 6px; margin-left: 6px;">${log.event_type_display}</span>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                  IP: ${log.ip_address}
+                </div>
+              </div>
+              <div class="code-font" style="font-size: 0.72rem; color: var(--text-secondary);">
+                ${log.time}
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    } catch (e) {
+      console.warn('Dashboard sync error:', e);
+    }
+  }
+
+  // Instant Competition Status Change (AJAX, Zero Reload)
+  async function updateCompStatus(compId, newStatus) {
+    const formData = new FormData();
+    formData.append('status', newStatus);
+    formData.append('ajax', '1');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+      const res = await fetch(`/manage/competitions/${compId}/status/`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const card = document.getElementById('manage-comp-card-' + compId);
+        if (card) {
+          const badge = card.querySelector('.comp-status-badge');
+          if (badge) {
+            badge.innerText = data.new_status_display;
+            badge.className = 'badge-clean comp-status-badge ' + (data.new_status === 'OPEN' ? 'badge-green' : (data.new_status === 'CLOSED' ? 'badge-gray' : 'badge-amber'));
+          }
+        }
+        // Immediately sync
+        syncDashboardStats();
+      }
+    } catch (e) {
+      console.error('Failed to change status:', e);
+      alert('Gagal memperbarui status kompetisi.');
+    }
+  }
+
+  // Poll stats every 3 seconds seamlessly
+  setInterval(syncDashboardStats, 3000);
+</script>
+{% endblock %}

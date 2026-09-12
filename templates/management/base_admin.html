@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>{% block title %}Pusat Manajemen{% endblock %} — SECUREQUIZ</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/cyber-theme.css">
+
+  <style>
+    :root {
+      --admin-sidebar-width: 260px;
+    }
+
+    .admin-layout {
+      display: flex;
+      min-height: 100vh;
+      background-color: var(--bg-body);
+      position: relative;
+    }
+
+    /* Sidebar Navigation */
+    .admin-sidebar {
+      width: var(--admin-sidebar-width);
+      background-color: #0b1120;
+      border-right: 1px solid var(--border-default);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 95;
+    }
+
+    .sidebar-backdrop.active {
+      display: block;
+    }
+
+    .admin-main {
+      margin-left: var(--admin-sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .admin-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      margin: 4px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+      font-weight: 500;
+      text-decoration: none;
+      min-height: 44px;
+      transition: var(--transition-fast);
+    }
+
+    .admin-nav-item:hover {
+      background-color: var(--bg-surface-elevated);
+      color: #ffffff;
+    }
+
+    .admin-nav-item.active {
+      background-color: var(--color-primary-subtle);
+      color: #60a5fa;
+      font-weight: 600;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .admin-nav-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    /* Top Command Bar */
+    .admin-top-nav {
+      min-height: 60px;
+      background: #0b1120;
+      border-bottom: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      gap: 12px;
+    }
+
+    .stat-kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 20px 18px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition-fast);
+    }
+
+    .stat-kpi-card:hover {
+      border-color: #3b82f6;
+    }
+
+    .table-container-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: var(--radius-md);
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.88rem;
+      min-width: 600px;
+    }
+
+    .admin-table th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.74rem;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-default);
+      text-align: left;
+    }
+
+    .admin-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+
+    .admin-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mobile-header-title {
+      display: none;
+    }
+
+    .desktop-header-title {
+      display: block;
+    }
+
+    /* Responsive Media Queries */
+    @media (max-width: 992px) {
+      .admin-sidebar {
+        transform: translateX(-100%);
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.7);
+        width: 280px;
+      }
+      .admin-sidebar.open {
+        transform: translateX(0);
+      }
+      .admin-main {
+        margin-left: 0;
+      }
+      .mobile-admin-menu-toggle {
+        display: inline-flex !important;
+      }
+      .admin-top-nav {
+        padding: 8px 14px;
+        min-height: 54px;
+      }
+      .desktop-header-title {
+        display: none !important;
+      }
+      .mobile-header-title {
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-heading);
+        font-weight: 700;
+        font-size: 0.98rem;
+        color: #fff;
+        white-space: nowrap;
+      }
+      .admin-content-area {
+        padding: 16px 14px 84px !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hide-mobile {
+        display: none !important;
+      }
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="admin-layout">
+    
+    <!-- Mobile Backdrop Overlay (Click to close drawer) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <!-- Logo Branding -->
+      <div style="padding: 18px 20px 16px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
+        <a href="{% url 'manage_dashboard' %}" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+          <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: #2563eb; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; flex-shrink: 0;">
+            ⚡
+          </div>
+          <div>
+            <div style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: #fff; line-height: 1.1;">
+              SECURE<span style="color: #60a5fa;">ADMIN</span>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.04em;">
+              Pusat Manajemen Modern
+            </div>
+          </div>
+        </a>
+        <button class="mobile-admin-menu-toggle" onclick="toggleSidebar()" style="display: none; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; width: 38px; height: 38px; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem;" title="Tutup Menu">✕</button>
+      </div>
+
+      <!-- Nav Links -->
+      <div style="padding: 16px 0; flex: 1; overflow-y: auto;">
+        <div style="padding: 0 20px 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);">
+          {% if user.role == 'JUDGE' and not user.is_superuser %}
+            Menu Dewan Juri
+          {% else %}
+            Menu Utama
+          {% endif %}
+        </div>
+
+        {% if user.is_superuser or user.role != 'JUDGE' %}
+          <a href="{% url 'manage_dashboard' %}" class="admin-nav-item {% if active_tab == 'overview' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+            <span class="admin-nav-icon">📊</span>
+            <span>Ringkasan Eksekutif</span>
+          </a>
+
+          <a href="{% url 'manage_questions' %}" class="admin-nav-item {% if active_tab == 'questions' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+            <span class="admin-nav-icon">📝</span>
+            <span>Bank & Editor Soal</span>
+          </a>
+
+          <a href="{% url 'manage_attempts' %}" class="admin-nav-item {% if active_tab == 'attempts' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+            <span class="admin-nav-icon">⚡</span>
+            <span>Live Monitoring Ujian</span>
+          </a>
+        {% endif %}
+
+        <a href="{% url 'manage_grading' %}" class="admin-nav-item {% if active_tab == 'grading' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+          <span class="admin-nav-icon">⚖️</span>
+          <span>Penilaian Essay (Juri)</span>
+        </a>
+
+        {% if user.is_superuser or user.role != 'JUDGE' %}
+          <a href="{% url 'manage_participants' %}" class="admin-nav-item {% if active_tab == 'participants' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+            <span class="admin-nav-icon">👥</span>
+            <span>Peserta & Akun</span>
+          </a>
+
+          <a href="{% url 'manage_audit' %}" class="admin-nav-item {% if active_tab == 'audit' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+            <span class="admin-nav-icon">🛡️</span>
+            <span>Security Audit Trail</span>
+          </a>
+        {% endif %}
+
+        <div style="padding: 16px 20px 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); border-top: 1px solid var(--border-subtle); margin-top: 14px;">
+          Tautan Sistem
+        </div>
+
+        <a href="/" target="_blank" class="admin-nav-item" onclick="closeSidebarOnMobile()">
+          <span class="admin-nav-icon">🏠</span>
+          <span>Portal Peserta ↗</span>
+        </a>
+
+        {% if user.is_superuser or user.is_staff and user.role != 'JUDGE' %}
+          <a href="/admin/" target="_blank" class="admin-nav-item" onclick="closeSidebarOnMobile()">
+            <span class="admin-nav-icon">⚙️</span>
+            <span>Django Raw Admin ↗</span>
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Bottom User Profile Card -->
+      <div style="padding: 14px 18px; border-top: 1px solid var(--border-subtle); background: rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-weight: 600; font-size: 0.88rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {{ user.username }}
+          </div>
+          <div style="font-size: 0.72rem; color: #60a5fa;">
+            {{ user.get_role_display }}
+          </div>
+        </div>
+        <a href="{% url 'logout' %}" class="btn-secondary" style="padding: 6px 12px; min-height: 34px; font-size: 0.78rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; flex-shrink: 0;" title="Keluar">
+          Keluar
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Body -->
+    <div class="admin-main">
+      
+      <!-- Top Command Bar (Clean, Mobile-Friendly, Zero Overlap) -->
+      <header class="admin-top-nav">
+        <!-- Left: Hamburger & Brand -->
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <button class="mobile-admin-menu-toggle btn-secondary" onclick="toggleSidebar()" style="display: none; padding: 6px 12px; min-height: 38px; font-size: 1.1rem; border-radius: var(--radius-sm);" title="Buka Menu Drawer">
+            ☰
+          </button>
+          
+          <!-- Desktop Page Title -->
+          <div class="desktop-header-title" style="min-width: 0;">
+            <div style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+              {% block header_title %}Pusat Manajemen Modern{% endblock %}
+            </div>
+          </div>
+
+          <!-- Mobile Brand Title -->
+          <div class="mobile-header-title">
+            <span style="width: 26px; height: 26px; background: #2563eb; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;">🛡️</span>
+            <span>SECURE<strong style="color: #60a5fa;">ADMIN</strong></span>
+          </div>
+        </div>
+
+        <!-- Right: Actions & Server Status -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <span class="badge-clean badge-green hide-mobile" style="font-size: 0.76rem; padding: 4px 10px; white-space: nowrap;">
+            ● Server Online (Port 8001)
+          </span>
+          <a href="{% url 'manage_export_scores_csv' %}" class="btn-secondary hide-mobile" style="padding: 7px 12px; min-height: 36px; font-size: 0.82rem; white-space: nowrap; border-color: rgba(16, 185, 129, 0.4); color: #34d399;" title="Unduh Rekap Nilai Seluruh Peserta dalam Format CSV/Excel">
+            📥 Export Nilai (CSV)
+          </a>
+          <a href="{% url 'manage_question_create' %}" class="btn-primary hide-mobile" style="padding: 7px 14px; min-height: 36px; font-size: 0.82rem; background: #2563eb; white-space: nowrap;">
+            + Buat Soal Baru
+          </a>
+
+          <!-- Mobile Quick Indicators (Zero Wrapping) -->
+          <div class="show-mobile-only" style="display: none; align-items: center; gap: 8px;">
+            <span style="font-size: 0.72rem; color: #34d399; background: rgba(16, 185, 129, 0.12); padding: 4px 8px; border-radius: var(--radius-full); border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 600;">
+              ● Live
+            </span>
+            <a href="{% url 'manage_question_create' %}" style="background: #2563eb; color: #fff; width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; text-decoration: none; font-weight: 700;" title="Buat Soal Baru">
+              +
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Global Alerts / Messages -->
+      {% if messages %}
+        <div style="padding: 16px 24px 0;">
+          {% for message in messages %}
+            <div class="saas-card" style="padding: 12px 18px; margin-bottom: 10px; border-left: 4px solid {% if message.tags == 'error' %}var(--color-danger){% elif message.tags == 'warning' %}var(--color-warning){% else %}var(--color-success){% endif %}; font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between;">
+              <span>{{ message }}</span>
+              <button onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem;">✕</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Page Content Area -->
+      <main class="admin-content-area" style="padding: 24px 28px 48px; flex: 1;">
+        <!-- In-Page Responsive Heading (Always legible on mobile and desktop) -->
+        <div style="margin-bottom: 22px;">
+          <h1 style="font-size: 1.45rem; font-weight: 800; color: #ffffff; line-height: 1.3; margin-bottom: 4px;">
+            {% block page_heading %}{% endblock %}
+          </h1>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">
+            {% block page_subheading %}{% endblock %}
+          </p>
+        </div>
+
+        {% block admin_content %}{% endblock %}
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- Mobile Bottom Navigation (Always accessible, eliminates all mobile blindspots) -->
+  <nav class="mobile-bottom-nav">
+    <a href="{% url 'manage_dashboard' %}" class="mobile-nav-tab {% if active_tab == 'dashboard' %}active{% endif %}">
+      <span class="mobile-nav-tab-icon">📊</span>
+      <span>Ringkasan</span>
+    </a>
+    <a href="{% url 'manage_questions' %}" class="mobile-nav-tab {% if active_tab == 'questions' %}active{% endif %}">
+      <span class="mobile-nav-tab-icon">❓</span>
+      <span>Soal</span>
+    </a>
+    <a href="{% url 'manage_attempts' %}" class="mobile-nav-tab {% if active_tab == 'attempts' %}active{% endif %}">
+      <span class="mobile-nav-tab-icon">⚡</span>
+      <span>Live</span>
+    </a>
+    <a href="{% url 'manage_grading' %}" class="mobile-nav-tab {% if active_tab == 'grading' %}active{% endif %}">
+      <span class="mobile-nav-tab-icon">📝</span>
+      <span>Koreksi</span>
+    </a>
+    <a href="{% url 'manage_participants' %}" class="mobile-nav-tab {% if active_tab == 'participants' %}active{% endif %}">
+      <span class="mobile-nav-tab-icon">👥</span>
+      <span>Peserta</span>
+    </a>
+  </nav>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('adminSidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      sidebar.classList.toggle('open');
+      backdrop.classList.toggle('active');
+    }
+
+    function closeSidebarOnMobile() {
+      if (window.innerWidth <= 992) {
+        const sidebar = document.getElementById('adminSidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('active');
+      }
+    }
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

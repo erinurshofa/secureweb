@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:"Pusat Komando Admin" }}{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <link rel="stylesheet" href="{% static 'css/admin-cyber.css' %}?v=2.2">
+{% endblock %}
+
+{% block branding %}
+<div style="display: flex; align-items: center; gap: 12px;">
+  <div style="width: 32px; height: 32px; border-radius: 6px; background: linear-gradient(135deg, #00f0ff 0%, #0284c7 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#05070a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </div>
+  <div>
+    <h1 id="site-name" style="margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em;">
+      <a href="{% url 'admin:index' %}" style="text-decoration: none; color: #fff;">
+        SECURE<span style="color: #60a5fa;">QUIZ</span> 
+        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 6px; padding: 2px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);">
+          Django Admin Backend
+        </span>
+      </a>
+    </h1>
+  </div>
+  <a href="/manage/" style="margin-left: 18px; background: #2563eb; color: #ffffff; padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; text-decoration: none; border: 1px solid #3b82f6; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);">
+    <span>⚡ Buka Panel Manajemen Modern</span>
+    <span>➔</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

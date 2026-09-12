@@ -1,0 +1,183 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Live Monitoring Ujian{% endblock %}
+{% block header_title %}Live Monitoring{% endblock %}
+{% block page_heading %}Live Monitoring Sesi Ujian Peserta{% endblock %}
+{% block page_subheading %}Pantau pengerjaan ujian secara live, sisa batas waktu server, dan skor tanpa reload.{% endblock %}
+
+{% block admin_content %}
+<div class="saas-card" style="padding: 24px 20px; border: 1px solid var(--border-default);">
+  
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span class="badge-clean badge-blue" id="active-count-badge" style="font-size: 0.82rem; padding: 6px 14px;">
+        ⚡ {{ active_count }} Sesi Sedang Berjalan
+      </span>
+      <span class="badge-clean badge-green" style="font-size: 0.78rem;">
+        ● Auto-Sync Live (3s)
+      </span>
+      <a href="{% url 'manage_export_scores_csv' %}" class="btn-secondary" style="padding: 6px 12px; min-height: 32px; font-size: 0.78rem; border-color: rgba(16, 185, 129, 0.4); color: #34d399;" title="Unduh Rekap Nilai CSV">
+        📥 Unduh Rekap Nilai (CSV)
+      </a>
+    </div>
+  </div>
+
+  <div class="table-scroll-hint">
+    <span>↔</span> Geser tabel ke samping untuk melihat batas waktu server & tombol aksi
+  </div>
+
+  <div class="table-responsive-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Peserta</th>
+          <th>Kompetisi</th>
+          <th>Sesi #</th>
+          <th>Status</th>
+          <th>Waktu Mulai</th>
+          <th>Batas Waktu Server</th>
+          <th>Sisa Waktu</th>
+          <th>Jawaban Masuk</th>
+          <th>Skor Sementara</th>
+          <th style="text-align: right;">Aksi Panitia</th>
+        </tr>
+      </thead>
+      <tbody id="attempts-tbody">
+        {% for att in attempts %}
+          <tr id="attempt-row-{{ att.id }}">
+            <td>
+              <div style="font-weight: 600; color: #fff;">{{ att.participant.username }}</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">
+                {{ att.participant.institution|default:"Independen" }}
+              </div>
+            </td>
+            <td style="font-size: 0.84rem; color: var(--text-secondary);">
+              {{ att.competition.title }}
+            </td>
+            <td>
+              <span class="badge-clean badge-gray code-font">#{{ att.attempt_number }}</span>
+            </td>
+            <td>
+              <span class="badge-clean att-status-badge {% if att.status == 'IN_PROGRESS' %}badge-blue{% elif att.status == 'SUBMITTED' %}badge-green{% else %}badge-amber{% endif %}">
+                {{ att.get_status_display }}
+              </span>
+            </td>
+            <td style="font-size: 0.8rem; color: var(--text-secondary);">
+              {{ att.start_time|date:"d M, H:i:s" }}
+            </td>
+            <td style="font-size: 0.8rem; color: var(--text-muted);">
+              {{ att.server_deadline|date:"d M, H:i:s" }}
+            </td>
+            <td class="code-font" style="font-weight: 700; color: #fbbf24; font-size: 0.88rem;">
+              {% if att.status == 'IN_PROGRESS' %}Live Countdown{% else %}Selesai{% endif %}
+            </td>
+            <td>
+              <span class="code-font" style="font-weight: 600; color: #60a5fa;">
+                {{ att.answers.count }} Soal
+              </span>
+            </td>
+            <td>
+              <span class="code-font" style="font-weight: 700; color: #34d399; font-size: 0.95rem;">
+                {{ att.grade.total_score|default:"-" }}
+              </span>
+            </td>
+            <td style="text-align: right;" class="att-action-cell">
+              {% if att.status == 'IN_PROGRESS' %}
+                <button type="button" onclick="forceSubmitAttempt('{{ att.id }}', '{{ att.participant.username }}')" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                  ⏹ Force Submit
+                </button>
+              {% else %}
+                <span style="font-size: 0.76rem; color: var(--text-dim);">Selesai Dikunci</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 36px;">
+              Belum ada data pengerjaan ujian.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Real-time Live Exam Attempts Sync (No Refresh Needed)
+  async function syncAttemptsList() {
+    try {
+      const res = await fetch('/manage/api/attempts/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === 'success') {
+        document.getElementById('active-count-badge').innerText = `⚡ ${data.active_count} Sesi Sedang Berjalan`;
+        
+        if (data.attempts && data.attempts.length > 0) {
+          const tbody = document.getElementById('attempts-tbody');
+          tbody.innerHTML = data.attempts.map(att => {
+            const badgeClass = att.status === 'IN_PROGRESS' ? 'badge-blue' : (att.status === 'SUBMITTED' ? 'badge-green' : 'badge-amber');
+            const actionHtml = att.status === 'IN_PROGRESS' 
+              ? `<button type="button" onclick="forceSubmitAttempt('${att.id}', '${att.username}')" class="btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.76rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">⏹ Force Submit</button>`
+              : `<span style="font-size: 0.76rem; color: var(--text-dim);">Selesai Dikunci</span>`;
+
+            return `
+              <tr id="attempt-row-${att.id}">
+                <td>
+                  <div style="font-weight: 600; color: #fff;">${att.username}</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">${att.institution}</div>
+                </td>
+                <td style="font-size: 0.84rem; color: var(--text-secondary);">${att.competition_title}</td>
+                <td><span class="badge-clean badge-gray code-font">#${att.attempt_number}</span></td>
+                <td><span class="badge-clean ${badgeClass}">${att.status_display}</span></td>
+                <td style="font-size: 0.8rem; color: var(--text-secondary);">${att.start_time}</td>
+                <td style="font-size: 0.8rem; color: var(--text-muted);">${att.server_deadline}</td>
+                <td class="code-font" style="font-weight: 700; color: #fbbf24; font-size: 0.88rem;">${att.status === 'IN_PROGRESS' ? att.remaining_time : 'Selesai'}</td>
+                <td><span class="code-font" style="font-weight: 600; color: #60a5fa;">${att.answers_count} Soal</span></td>
+                <td><span class="code-font" style="font-weight: 700; color: #34d399; font-size: 0.95rem;">${att.score}</span></td>
+                <td style="text-align: right;" class="att-action-cell">${actionHtml}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    } catch (e) {
+      console.warn('Attempts sync error:', e);
+    }
+  }
+
+  // Force Submit without page reload
+  async function forceSubmitAttempt(attemptId, username) {
+    if (!confirm(`Paksa selesai ujian untuk ${username}? Seluruh jawaban saat ini akan dikunci dan dihitung permanen.`)) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('ajax', '1');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+      const res = await fetch(`/manage/attempts/${attemptId}/force-submit/`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        syncAttemptsList();
+      }
+    } catch (e) {
+      console.error('Force submit error:', e);
+      alert('Gagal melakukan force submit.');
+    }
+  }
+
+  // Poll every 3 seconds
+  setInterval(syncAttemptsList, 3000);
+</script>
+{% endblock %}

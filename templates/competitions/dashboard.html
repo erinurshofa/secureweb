@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Kompetisi — Secure Quiz Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 1300px; margin: 32px auto; padding: 0 20px;">
+  
+  <!-- Welcome Banner -->
+  <div class="saas-card" style="padding: 32px; margin-bottom: 28px; background: linear-gradient(135deg, #0f172a 0%, #172554 100%); border: 1px solid var(--border-default);">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <span class="badge-clean badge-blue">Portal Peserta Ujian</span>
+      <span style="font-size: 0.8rem; color: var(--color-success); font-weight: 600;">● Server Siap</span>
+    </div>
+
+    <h1 style="font-size: 1.85rem; margin-bottom: 8px;">
+      Selamat Datang, <span style="color: #60a5fa;">{{ user.username }}</span>
+    </h1>
+    <p style="font-size: 0.96rem; color: var(--text-secondary); max-width: 680px; line-height: 1.6;">
+      Pilih babak kompetisi yang tersedia di bawah untuk memulai sesi pengerjaan. Seluruh durasi dan penyimpanan jawaban dikelola langsung oleh server.
+    </p>
+
+    {% if user.institution %}
+      <div style="margin-top: 14px; font-size: 0.84rem; color: var(--text-muted);">
+        Instansi / Tim: <strong style="color: #fff;">{{ user.institution }}</strong>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Competition List Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px;">
+    <div>
+      <h2 style="font-size: 1.3rem;">Daftar Babak Kompetisi</h2>
+      <p style="font-size: 0.86rem; color: var(--text-muted);">Kompetisi yang terdaftar pada akun Anda</p>
+    </div>
+    <span class="badge-clean badge-gray">
+      {{ competitions|length }} Kompetisi
+    </span>
+  </div>
+
+  <!-- Competition Cards Grid (Responsive, Zero Mobile Overflow) -->
+  <div class="grid-competitions-responsive">
+    {% for item in competitions %}
+      <div class="saas-card" id="comp-card-{{ item.competition.id }}" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <!-- Header Status -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+            <span class="badge-clean comp-status-badge {% if item.competition.status == 'OPEN' %}badge-green{% elif item.competition.status == 'CLOSED' %}badge-gray{% else %}badge-amber{% endif %}">
+              {% if item.competition.status == 'OPEN' %}Sedang Berlangsung{% elif item.competition.status == 'CLOSED' %}Selesai{% elif item.competition.status == 'PUBLISHED' %}Akan Datang{% else %}{{ item.competition.get_status_display }}{% endif %}
+            </span>
+            <span class="code-font" style="font-size: 0.82rem; color: var(--text-muted);">
+              ⏱ {{ item.competition.duration_minutes }} Menit
+            </span>
+          </div>
+
+          <h3 style="font-size: 1.2rem; margin-bottom: 8px; line-height: 1.35;">{{ item.competition.title }}</h3>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.55;">
+            {{ item.competition.description|default:"Tidak ada keterangan tambahan untuk babak kompetisi ini."|truncatewords:20 }}
+          </p>
+
+          <!-- Details Table -->
+          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 20px; font-size: 0.84rem; border: 1px solid var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: var(--text-muted);">Jadwal Mulai:</span>
+              <span class="code-font" style="color: var(--text-primary);">{{ item.competition.start_time|date:"d M Y, H:i" }} WIB</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: var(--text-muted);">Batas Selesai:</span>
+              <span class="code-font" style="color: var(--text-primary);">{{ item.competition.end_time|date:"d M Y, H:i" }} WIB</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Jumlah Soal:</span>
+              <span class="code-font" style="color: var(--color-primary); font-weight: 700;">{{ item.question_count }} Soal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="comp-action-container">
+          {% if item.active_attempt %}
+            <a href="{% url 'exam_arena' item.active_attempt.id %}" class="btn-primary" style="width: 100%;">
+              Lanjutkan Pengerjaan (Sesi Aktif) ➔
+            </a>
+          {% elif item.can_start %}
+            <form method="POST" action="{% url 'start_attempt' item.competition.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-success" style="width: 100%;">
+                Mulai Ujian Sekarang 🚀
+              </button>
+            </form>
+          {% elif item.is_completed %}
+            <div style="text-align: center; padding: 10px; background: var(--color-success-subtle); border-radius: var(--radius-md); border: 1px solid var(--color-success-border); color: var(--color-success); font-size: 0.86rem; font-weight: 600;">
+              ✓ Ujian Telah Selesai Dikerjakan
+            </div>
+          {% else %}
+            <button disabled class="btn-secondary" style="width: 100%; opacity: 0.5; cursor: not-allowed;">
+              🔒 Belum Dibuka
+            </button>
+          {% endif %}
+        </div>
+
+      </div>
+    {% empty %}
+      <div class="saas-card" style="grid-column: 1 / -1; padding: 50px 20px; text-align: center;">
+        <div style="font-size: 2.2rem; margin-bottom: 10px;">📋</div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Belum Ada Kompetisi Tersedia</h3>
+        <p style="font-size: 0.88rem; color: var(--text-secondary);">Akun Anda belum terdaftar pada kompetisi apapun. Silakan hubungi panitia lomba.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Real-time Competition Status Polling (No Refresh Needed)
+  async function syncCompetitionStatus() {
+    try {
+      const res = await fetch('/api/competitions/status/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === 'success' && data.competitions) {
+        data.competitions.forEach(comp => {
+          const card = document.getElementById('comp-card-' + comp.id);
+          if (card) {
+            const badge = card.querySelector('.comp-status-badge');
+            if (badge) {
+              badge.innerText = comp.status_display;
+              badge.className = 'badge-clean comp-status-badge ' + (comp.status === 'OPEN' ? 'badge-green' : (comp.status === 'CLOSED' ? 'badge-gray' : 'badge-amber'));
+            }
+
+            const actionContainer = card.querySelector('.comp-action-container');
+            if (actionContainer) {
+              if (comp.active_attempt_id) {
+                actionContainer.innerHTML = `
+                  <a href="/attempts/${comp.active_attempt_id}/arena/" class="btn-primary" style="width: 100%;">
+                    Lanjutkan Pengerjaan (Sesi Aktif) ➔
+                  </a>
+                `;
+              } else if (comp.can_start) {
+                actionContainer.innerHTML = `
+                  <form method="POST" action="/competitions/${comp.id}/start/">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                    <button type="submit" class="btn-success" style="width: 100%;">
+                      Mulai Ujian Sekarang 🚀
+                    </button>
+                  </form>
+                `;
+              } else if (comp.is_completed) {
+                actionContainer.innerHTML = `
+                  <div style="text-align: center; padding: 10px; background: var(--color-success-subtle); border-radius: var(--radius-md); border: 1px solid var(--color-success-border); color: var(--color-success); font-size: 0.86rem; font-weight: 600;">
+                    ✓ Ujian Telah Selesai Dikerjakan
+                  </div>
+                `;
+              } else {
+                actionContainer.innerHTML = `
+                  <button disabled class="btn-secondary" style="width: 100%; opacity: 0.5; cursor: not-allowed;">
+                    🔒 ${comp.status_display}
+                  </button>
+                `;
+              }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Sync status error:', e);
+    }
+  }
+
+  // Poll every 4 seconds seamlessly in background
+  setInterval(syncCompetitionStatus, 4000);
+</script>
+{% endblock %}

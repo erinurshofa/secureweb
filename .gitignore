@@ -1,0 +1,149 @@
+# ==============================================================================
+# SECURE WEB QUIZ PLATFORM — WORLD-CLASS SECURE .GITIGNORE
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. KREDENSIAL & BERKAS SENSITIF (CRITICAL SECURITY)
+# ------------------------------------------------------------------------------
+# Berkas kredensial pengujian lokal (DILARANG KERAS TERApload!)
+pengguna.txt
+pengguna*.txt
+credentials*.txt
+passwords*.txt
+akun*.txt
+secrets*.txt
+*.pem
+*.key
+*.cert
+*.pfx
+
+# File Konfigurasi Environment & Kunci Rahasia
+.env
+.env.local
+.env.*.local
+.env.prod
+.env.production
+.env.staging
+# Pengecualian: .env.example tetap di-commit sebagai panduan setup
+!.env.example
+
+# ------------------------------------------------------------------------------
+# 2. PYTHON COMPILED & RUNTIME CACHE
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ------------------------------------------------------------------------------
+# 3. VIRTUAL ENVIRONMENTS (VENV)
+# ------------------------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ------------------------------------------------------------------------------
+# 4. DATABASE & BACKUP DUMPS (DATA PRIVACY)
+# ------------------------------------------------------------------------------
+*.sqlite3
+*.sqlite3-journal
+*.db
+*.sql
+*.sql.gz
+*.dump
+db.sqlite3
+
+# ------------------------------------------------------------------------------
+# 5. BERKAS UPLOAD & MEDIA STORAGE (ATTACHMENT QUARANTINE)
+# ------------------------------------------------------------------------------
+media/*
+!media/.gitkeep
+media/quarantine/*
+media/attachments/*
+staticfiles/
+static_collected/
+
+# ------------------------------------------------------------------------------
+# 6. LOGS, AUDIT DUMPS & SCRATCH WORKSPACE
+# ------------------------------------------------------------------------------
+*.log
+logs/
+scratch/
+.system_generated/
+*.log.*
+
+# ------------------------------------------------------------------------------
+# 7. UNIT TESTS & COVERAGE
+# ------------------------------------------------------------------------------
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ------------------------------------------------------------------------------
+# 8. IDE, EDITORS & OS ARTIFACTS
+# ------------------------------------------------------------------------------
+# JetBrains (PyCharm)
+.idea/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Temporary / Swap Files
+*.swp
+*.swo
+*~
+*.bak
+*.tmp

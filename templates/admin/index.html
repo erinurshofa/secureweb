@@ -1,0 +1,64 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<!-- Modern SaaS Mission Control Launchpad Banner -->
+<div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1.5px solid #3b82f6; border-radius: 12px; padding: 24px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 9999px; font-size: 0.74rem; font-weight: 700; margin-bottom: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+        ★ REKOMENDASI UTAMA
+      </div>
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #ffffff; margin: 0 0 6px;">
+        Pusat Manajemen Ujian Modern & Fleksibel
+      </h2>
+      <p style="font-size: 0.88rem; color: #94a3b8; margin: 0;">
+        Antarmuka SaaS interaktif baru untuk mengelola kompetisi, bank soal, pantauan peserta live, dan evaluasi juri secara instan.
+      </p>
+    </div>
+
+    <a href="/manage/" style="background: #2563eb; color: #ffffff; padding: 10px 22px; border-radius: 8px; font-size: 0.92rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+      <span>Masuk ke Panel Modern</span>
+      <span>➔</span>
+    </a>
+  </div>
+
+  <!-- Quick Access Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+    <a href="/manage/questions/" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; text-decoration: none; color: #f8fafc; transition: all 0.2s ease;">
+      <div style="font-size: 1.1rem; margin-bottom: 4px;">📝</div>
+      <div style="font-weight: 600; font-size: 0.86rem; color: #fff;">Bank & Editor Soal</div>
+      <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Tambah opsi & berkas</div>
+    </a>
+
+    <a href="/manage/attempts/" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; text-decoration: none; color: #f8fafc; transition: all 0.2s ease;">
+      <div style="font-size: 1.1rem; margin-bottom: 4px;">⚡</div>
+      <div style="font-weight: 600; font-size: 0.86rem; color: #fff;">Live Monitoring</div>
+      <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Sesi ujian & countdown</div>
+    </a>
+
+    <a href="/manage/grading/" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; text-decoration: none; color: #f8fafc; transition: all 0.2s ease;">
+      <div style="font-size: 1.1rem; margin-bottom: 4px;">⚖️</div>
+      <div style="font-weight: 600; font-size: 0.86rem; color: #fff;">Penilaian Essay</div>
+      <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Input skor juri langsung</div>
+    </a>
+
+    <a href="/manage/participants/" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; text-decoration: none; color: #f8fafc; transition: all 0.2s ease;">
+      <div style="font-size: 1.1rem; margin-bottom: 4px;">👥</div>
+      <div style="font-weight: 600; font-size: 0.86rem; color: #fff;">Peserta Lomba</div>
+      <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Reset sandi & status</div>
+    </a>
+
+    <a href="/manage/audit/" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; text-decoration: none; color: #f8fafc; transition: all 0.2s ease;">
+      <div style="font-size: 1.1rem; margin-bottom: 4px;">🛡️</div>
+      <div style="font-weight: 600; font-size: 0.86rem; color: #fff;">Security Audit Log</div>
+      <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Riwayat forensik anti-cheat</div>
+    </a>
+  </div>
+</div>
+
+<h3 style="font-size: 0.95rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;">
+  Akses Tabel Database Mentah (Django Models)
+</h3>
+
+{{ block.super }}
+{% endblock %}

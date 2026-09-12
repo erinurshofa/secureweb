@@ -1,0 +1,205 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}{% if question %}Edit Soal #{{ question.sequence }}{% else %}Buat Soal Baru{% endif %}{% endblock %}
+{% block header_title %}Editor Soal{% endblock %}
+{% block page_heading %}{% if question %}Edit Soal #{{ question.sequence }}: {{ question.title }}{% else %}Buat Soal Ujian Baru{% endif %}{% endblock %}
+{% block page_subheading %}Lengkapi narasi soal, bobot poin, opsi jawaban, dan berkas tantangan.{% endblock %}
+
+{% block admin_content %}
+<div class="saas-card" style="max-width: 900px; padding: 24px 20px; border: 1px solid var(--border-default);">
+  
+  <form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Competition & Sequence Header Grid (Responsive) -->
+    <div class="form-grid-3col" style="margin-bottom: 20px;">
+      <div>
+        <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+          Pilih Babak Kompetisi *
+        </label>
+        <select name="competition" required style="width: 100%; min-height: 44px; padding: 8px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-size: 0.92rem; outline: none;">
+          {% for comp in competitions %}
+            <option value="{{ comp.id }}" {% if question and question.competition_id == comp.id %}selected{% endif %}>
+              {{ comp.title }} ({{ comp.get_status_display }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+          Nomor Urut *
+        </label>
+        <input type="number" name="sequence" value="{{ question.sequence|default:'1' }}" min="1" required style="width: 100%; min-height: 44px; padding: 8px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-size: 0.92rem; outline: none;">
+      </div>
+
+      <div>
+        <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+          Bobot Poin *
+        </label>
+        <input type="number" step="0.5" name="points" value="{{ question.points|default:'10.00' }}" min="1" required style="width: 100%; min-height: 44px; padding: 8px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-size: 0.92rem; outline: none;">
+      </div>
+    </div>
+
+    <!-- Question Title -->
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        Judul Soal / Topik Pertanyaan *
+      </label>
+      <input type="text" name="title" value="{{ question.title|default:'' }}" placeholder="contoh: Analisis Header HTTP & Injeksi SQL Blind" required style="width: 100%; min-height: 44px; padding: 8px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-size: 0.95rem; outline: none;">
+    </div>
+
+    <!-- Question Type Selection -->
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        Tipe Soal *
+      </label>
+      <div style="display: flex; gap: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="radio" name="type" value="MCQ" id="type_mcq" onchange="toggleTypeView()" {% if not question or question.type == 'MCQ' %}checked{% endif %}>
+          <span style="font-weight: 600; color: #fff;">Pilihan Ganda (MCQ)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="radio" name="type" value="ESSAY" id="type_essay" onchange="toggleTypeView()" {% if question and question.type == 'ESSAY' %}checked{% endif %}>
+          <span style="font-weight: 600; color: #fff;">Soal Essay / Analisis Teknis</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Question Body -->
+    <div style="margin-bottom: 24px;">
+      <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        Konten & Narasi Soal *
+      </label>
+      <textarea name="body" rows="6" required placeholder="Tuliskan skenario tantangan, kode sumber, atau pertanyaan lengkap di sini..." style="width: 100%; padding: 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: #fff; font-family: var(--font-sans); font-size: 0.95rem; outline: none; line-height: 1.6; resize: vertical;">{{ question.body|default:'' }}</textarea>
+    </div>
+
+    <!-- MCQ Options Builder (Visible only when MCQ is active) -->
+    <div id="mcq-options-builder" style="background: var(--bg-body); border-radius: var(--radius-lg); padding: 22px; border: 1px solid var(--border-default); margin-bottom: 24px; {% if question and question.type == 'ESSAY' %}display: none;{% endif %}">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div>
+          <h3 style="font-size: 1rem; font-weight: 700; color: #fff;">Pilihan Jawaban & Kunci Jawaban Benar</h3>
+          <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">
+            Pilih satu tombol radio di sebelah opsi sebagai <strong>Kunci Jawaban yang Benar</strong> (Auto-Scored).
+          </p>
+        </div>
+        <button type="button" onclick="addOptionRow()" class="btn-secondary" style="padding: 6px 14px; min-height: 34px; font-size: 0.82rem;">
+          + Tambah Opsi
+        </button>
+      </div>
+
+      <div id="options-container" style="display: flex; flex-direction: column; gap: 10px;">
+        {% if question and question.options.all %}
+          {% for opt in question.options.all %}
+            <div class="option-row" style="display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;" title="Tandai sebagai kunci jawaban benar">
+                <input type="checkbox" name="is_correct[]" value="{{ forloop.counter0 }}" {% if opt.is_correct %}checked{% endif %}>
+                <span style="font-size: 0.78rem; color: #34d399; font-weight: 600;">Benar</span>
+              </label>
+              <input type="text" name="option_text[]" value="{{ opt.option_text }}" placeholder="Teks opsi jawaban..." required style="flex: 1; min-height: 38px; padding: 6px 12px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+              <button type="button" onclick="this.closest('.option-row').remove()" style="background: none; border: none; color: #fca5a5; font-size: 1.1rem; cursor: pointer; padding: 4px;">✕</button>
+            </div>
+          {% endfor %}
+        {% else %}
+          <!-- Default 4 Options A, B, C, D -->
+          <div class="option-row" style="display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;" title="Tandai sebagai kunci jawaban benar">
+              <input type="checkbox" name="is_correct[]" value="0" checked>
+              <span style="font-size: 0.78rem; color: #34d399; font-weight: 600;">Benar</span>
+            </label>
+            <input type="text" name="option_text[]" placeholder="Opsi A (Pilihan Pertama)..." required style="flex: 1; min-height: 38px; padding: 6px 12px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+            <button type="button" onclick="this.closest('.option-row').remove()" style="background: none; border: none; color: #fca5a5; font-size: 1.1rem; cursor: pointer; padding: 4px;">✕</button>
+          </div>
+          <div class="option-row" style="display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" name="is_correct[]" value="1">
+              <span style="font-size: 0.78rem; color: #34d399; font-weight: 600;">Benar</span>
+            </label>
+            <input type="text" name="option_text[]" placeholder="Opsi B (Pilihan Kedua)..." required style="flex: 1; min-height: 38px; padding: 6px 12px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+            <button type="button" onclick="this.closest('.option-row').remove()" style="background: none; border: none; color: #fca5a5; font-size: 1.1rem; cursor: pointer; padding: 4px;">✕</button>
+          </div>
+          <div class="option-row" style="display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" name="is_correct[]" value="2">
+              <span style="font-size: 0.78rem; color: #34d399; font-weight: 600;">Benar</span>
+            </label>
+            <input type="text" name="option_text[]" placeholder="Opsi C (Pilihan Ketiga)..." required style="flex: 1; min-height: 38px; padding: 6px 12px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+            <button type="button" onclick="this.closest('.option-row').remove()" style="background: none; border: none; color: #fca5a5; font-size: 1.1rem; cursor: pointer; padding: 4px;">✕</button>
+          </div>
+          <div class="option-row" style="display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" name="is_correct[]" value="3">
+              <span style="font-size: 0.78rem; color: #34d399; font-weight: 600;">Benar</span>
+            </label>
+            <input type="text" name="option_text[]" placeholder="Opsi D (Pilihan Keempat)..." required style="flex: 1; min-height: 38px; padding: 6px 12px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+            <button type="button" onclick="this.closest('.option-row').remove()" style="background: none; border: none; color: #fca5a5; font-size: 1.1rem; cursor: pointer; padding: 4px;">✕</button>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Challenge Attachment Upload -->
+    <div style="background: var(--bg-body); border-radius: var(--radius-lg); padding: 20px; border: 1px solid var(--border-default); margin-bottom: 28px;">
+      <label style="display: block; font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        Lampiran Berkas Soal / Challenge File (Opsional)
+      </label>
+      <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px;">
+        Unggah berkas pcap, binari, dokumen bukti, atau script yang diunduh peserta menggunakan token sandbox aman.
+      </p>
+      <input type="file" name="attachment_file" style="font-size: 0.86rem; color: var(--text-secondary);">
+
+      {% if question and question.attachments.exists %}
+        <div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">
+          Berkas terpasang saat ini:
+          {% for att in question.attachments.all %}
+            <strong style="color: #60a5fa;">{{ att.display_filename }}</strong> ({{ att.file_size|filesizeformat }})
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button type="submit" class="btn-primary" style="padding: 12px 28px; font-size: 0.96rem; background: #2563eb;">
+        Simpan Soal Ujian ➔
+      </button>
+      <a href="{% url 'manage_questions' %}" class="btn-secondary" style="padding: 12px 20px; font-size: 0.94rem;">
+        Batal
+      </a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function toggleTypeView() {
+    const isMcq = document.getElementById('type_mcq').checked;
+    const builder = document.getElementById('mcq-options-builder');
+    if (isMcq) {
+      builder.style.display = 'block';
+    } else {
+      builder.style.display = 'none';
+    }
+  }
+
+  function addOptionRow() {
+    const container = document.getElementById('options-container');
+    const count = container.querySelectorAll('.option-row').length;
+    
+    const div = document.createElement('div');
+    div.className = 'option-row';
+    div.style = 'display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);';
+    div.innerHTML = `
+      <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input type="checkbox" name="is_correct[]" value="${count}">
+        <span style="font-size: 0.78rem; color: #34d399; font-weight: 600;">Benar</span>
+      </label>
+      <input type="text" name="option_text[]" placeholder="Opsi pilihan baru..." required style="flex: 1; min-height: 38px; padding: 6px 12px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+      <button type="button" onclick="this.closest('.option-row').remove()" style="background: none; border: none; color: #fca5a5; font-size: 1.1rem; cursor: pointer; padding: 4px;">✕</button>
+    `;
+    container.appendChild(div);
+  }
+</script>
+{% endblock %}

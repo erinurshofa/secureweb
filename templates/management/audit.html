@@ -1,0 +1,97 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Security Audit Trail{% endblock %}
+{% block header_title %}Audit Trail{% endblock %}
+{% block page_heading %}Jejak Audit & Log Keamanan Sistem{% endblock %}
+{% block page_subheading %}Pencatatan mutlak seluruh aktivitas sensitif, IP address, dan forensik lomba.{% endblock %}
+
+{% block admin_content %}
+<div class="saas-card" style="padding: 24px 20px; border: 1px solid var(--border-default);">
+  
+  <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 20px;">
+    <span class="badge-clean badge-green">
+      🛡️ Immutable Security Ledger Aktif
+    </span>
+  </div>
+
+  <!-- Filter & Search Strip -->
+  <form method="GET" style="display: flex; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; background: var(--bg-body); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+    <div>
+      <select name="event_type" onchange="this.form.submit()" style="padding: 8px 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.86rem; outline: none;">
+        <option value="">-- Semua Jenis Kejadian (Event) --</option>
+        {% for code, label in event_types %}
+          <option value="{{ code }}" {% if selected_event == code %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 220px;">
+      <input type="text" name="q" value="{{ search_q|default:'' }}" placeholder="Cari username, alamat IP, atau endpoint path..." style="width: 100%; min-height: 38px; padding: 6px 14px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.88rem; outline: none;">
+    </div>
+
+    <button type="submit" class="btn-secondary" style="padding: 6px 14px; min-height: 38px; font-size: 0.84rem;">
+      🔍 Filter
+    </button>
+
+    {% if selected_event or search_q %}
+      <a href="{% url 'manage_audit' %}" class="btn-secondary" style="padding: 6px 12px; min-height: 38px; font-size: 0.84rem;">
+        Reset ✕
+      </a>
+    {% endif %}
+  </form>
+
+  <div class="table-scroll-hint">
+    <span>↔</span> Geser tabel ke samping untuk melihat detail IP address & metadata
+  </div>
+
+  <div class="table-responsive-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Waktu Kejadian</th>
+          <th>Pengguna</th>
+          <th>Tipe Event</th>
+          <th>Alamat IP</th>
+          <th>Endpoint Path</th>
+          <th>User Agent / Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td class="code-font" style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">
+              {{ log.created_at|date:"d M Y, H:i:s" }}
+            </td>
+            <td>
+              <strong style="color: #ffffff;">{{ log.user.username|default:"Anonim / Tamu" }}</strong>
+            </td>
+            <td>
+              <span class="badge-clean {% if log.event_type == 'LOGIN' or log.event_type == 'ANSWER_AUTOSAVE' %}badge-green{% elif log.event_type == 'EXAM_SUBMIT' %}badge-blue{% elif log.event_type == 'SUSPICIOUS_REQUEST' %}badge-amber{% else %}badge-gray{% endif %}" style="font-size: 0.74rem;">
+                {{ log.get_event_type_display }}
+              </span>
+            </td>
+            <td class="code-font" style="font-size: 0.82rem; color: #60a5fa;">
+              {{ log.ip_address }}
+            </td>
+            <td class="code-font" style="font-size: 0.76rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {{ log.path|default:"-" }}
+            </td>
+            <td style="font-size: 0.74rem; color: var(--text-dim); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {{ log.user_agent|default:"-" }}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">
+              Tidak ada data log audit yang sesuai.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
