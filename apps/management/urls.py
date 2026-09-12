@@ -15,8 +15,9 @@ urlpatterns = [
     path('questions/<uuid:question_id>/edit/', views.question_create_or_edit, name='manage_question_edit'),
     path('questions/<uuid:question_id>/delete/', views.question_delete, name='manage_question_delete'),
 
-    # Real-time Exam Attempts Monitor
+    # Real-time Exam Attempts Monitor & Leaderboard
     path('attempts/', views.attempts_monitor, name='manage_attempts'),
+    path('ranking/', views.ranking_leaderboard, name='manage_ranking'),
     path('api/attempts/', views.api_attempts_list, name='manage_api_attempts'),
     path('attempts/<uuid:attempt_id>/force-submit/', views.attempt_force_submit, name='manage_attempt_force_submit'),
 

@@ -260,16 +260,22 @@
             <span class="admin-nav-icon">📝</span>
             <span>Bank & Editor Soal</span>
           </a>
-
-          <a href="{% url 'manage_attempts' %}" class="admin-nav-item {% if active_tab == 'attempts' %}active{% endif %}" onclick="closeSidebarOnMobile()">
-            <span class="admin-nav-icon">⚡</span>
-            <span>Live Monitoring Ujian</span>
-          </a>
         {% endif %}
 
         <a href="{% url 'manage_grading' %}" class="admin-nav-item {% if active_tab == 'grading' %}active{% endif %}" onclick="closeSidebarOnMobile()">
           <span class="admin-nav-icon">⚖️</span>
           <span>Penilaian Essay (Juri)</span>
+        </a>
+
+        <!-- Live Monitoring & Ranking (Accessible by Organizers, Admins, and Judges) -->
+        <a href="{% url 'manage_attempts' %}" class="admin-nav-item {% if active_tab == 'attempts' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+          <span class="admin-nav-icon">⚡</span>
+          <span>Live Monitoring Ujian</span>
+        </a>
+
+        <a href="{% url 'manage_ranking' %}" class="admin-nav-item {% if active_tab == 'ranking' %}active{% endif %}" onclick="closeSidebarOnMobile()">
+          <span class="admin-nav-icon">🏆</span>
+          <span>Papan Peringkat (Ranking)</span>
         </a>
 
         {% if user.is_superuser or user.role != 'JUDGE' %}

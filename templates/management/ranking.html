@@ -1,0 +1,227 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Papan Peringkat & Leaderboard Juara{% endblock %}
+{% block header_title %}Papan Peringkat (Leaderboard){% endblock %}
+{% block page_heading %}🏆 Papan Peringkat & Rekap Juara Ujian{% endblock %}
+{% block page_subheading %}Pantau ranking peserta dengan perolehan poin terbanyak, breakdown nilai pilihan ganda vs essay, dan waktu penyelesaian.{% endblock %}
+
+{% block admin_content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+
+  <!-- Header Action Bar -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <span class="badge-clean badge-blue" style="font-size: 0.88rem; font-weight: 700; padding: 6px 14px;">
+        👥 {{ total_participants_ranked }} Peserta Terperingkat
+      </span>
+      <span class="badge-clean badge-green" style="font-size: 0.82rem; padding: 6px 14px;">
+        ● Skor Terkalkulasi Otomatis
+      </span>
+      {% if user.role == 'JUDGE' and not user.is_superuser %}
+        <span class="badge-clean" style="font-size: 0.82rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+          ⚖️ Akses Evaluasi & Pengawasan Dewan Juri
+        </span>
+      {% endif %}
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{% url 'manage_attempts' %}" class="btn-secondary" style="padding: 8px 16px; font-size: 0.86rem; display: inline-flex; align-items: center; gap: 6px;">
+        <span>⚡</span> <span>Live Monitoring Ujian</span>
+      </a>
+      <a href="{% url 'manage_export_scores_csv' %}" class="btn-primary" style="padding: 8px 18px; font-size: 0.86rem; background: #10b981; border: none; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+        <span>📥</span> <span>Unduh Rekap CSV</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- PODIUM JUARA TOP 3 (Jika Ada Minimal 1 Peserta Selesai) -->
+  {% if top_3 %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px;">
+    {% for item in top_3 %}
+      <div class="saas-card" style="padding: 22px; border-radius: var(--radius-lg); position: relative; overflow: hidden;
+        {% if item.rank == 1 %}
+          border: 1px solid rgba(251, 191, 36, 0.5); background: linear-gradient(180deg, rgba(251, 191, 36, 0.08) 0%, rgba(13, 18, 29, 0.95) 100%); box-shadow: 0 10px 30px rgba(251, 191, 36, 0.15);
+        {% elif item.rank == 2 %}
+          border: 1px solid rgba(148, 163, 184, 0.4); background: linear-gradient(180deg, rgba(148, 163, 184, 0.06) 0%, rgba(13, 18, 29, 0.95) 100%);
+        {% else %}
+          border: 1px solid rgba(249, 115, 22, 0.4); background: linear-gradient(180deg, rgba(249, 115, 22, 0.06) 0%, rgba(13, 18, 29, 0.95) 100%);
+        {% endif %}">
+        
+        <!-- Rank Icon Badge -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+          <div>
+            <span style="font-size: 2rem;">
+              {% if item.rank == 1 %}🥇{% elif item.rank == 2 %}🥈{% else %}🥉{% endif %}
+            </span>
+            <div style="font-size: 0.76rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
+              {% if item.rank == 1 %}color: #fbbf24;{% elif item.rank == 2 %}color: #cbd5e1;{% else %}color: #fb923c;{% endif %}">
+              Peringkat #{{ item.rank }} (Juara {{ item.rank }})
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Total Skor Akhir</div>
+            <div class="code-font" style="font-size: 1.8rem; font-weight: 800; color: #34d399; line-height: 1.1;">
+              {{ item.grade.total_score|default:"0.00" }}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0 0 2px;">
+            {{ item.attempt.participant.username }}
+          </h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">
+            {{ item.attempt.participant.institution|default:"Independen / Umum" }}
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.74rem;">MCQ:</span>
+            <strong style="color: #60a5fa; margin-left: 4px;">{{ item.grade.mcq_score|default:"0.00" }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.74rem;">Essay:</span>
+            <strong style="color: #a78bfa; margin-left: 4px;">{{ item.grade.essay_score|default:"0.00" }}</strong>
+          </div>
+          <div style="grid-column: span 2; margin-top: 4px; color: var(--text-muted); font-size: 0.74rem;">
+            Durasi Ujian: <strong style="color: #fbbf24;">{{ item.duration_str }}</strong>
+          </div>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Filter & Search Toolbar Card -->
+  <div class="saas-card" style="padding: 20px 24px; border: 1px solid var(--border-default); margin-bottom: 24px;">
+    <form method="GET" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+      
+      <div style="flex: 1; min-width: 240px;">
+        <input type="text" name="q" value="{{ search_q }}" placeholder="🔍 Cari nama peserta, username, institusi..." style="width: 100%; min-height: 40px; padding: 6px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+      </div>
+
+      <div>
+        <select name="competition_id" onchange="this.form.submit()" style="min-height: 40px; padding: 6px 14px; background: var(--bg-body); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.9rem; outline: none;">
+          <option value="">-- Semua Babak Kompetisi --</option>
+          {% for comp in competitions %}
+            <option value="{{ comp.id }}" {% if selected_comp == comp.id|stringformat:'s' %}selected{% endif %}>
+              {{ comp.title }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn-primary" style="padding: 8px 20px; min-height: 40px; font-size: 0.88rem; background: #2563eb;">
+        Filter Ranking
+      </button>
+
+      {% if search_q or selected_comp %}
+        <a href="{% url 'manage_ranking' %}" class="btn-secondary" style="padding: 8px 14px; min-height: 40px; font-size: 0.84rem; display: inline-flex; align-items: center;">
+          Reset Filter ✕
+        </a>
+      {% endif %}
+
+    </form>
+  </div>
+
+  <!-- Full Ranking Table Card -->
+  <div class="saas-card" style="padding: 24px; border: 1px solid var(--border-default);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 2px;">
+          Tabel Peringkat Resmi (Poin Terbanyak & Waktu Tercepat)
+        </h3>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+          Urutan resmi peringkat lomba berdasarkan total skor tertinggi, dengan tie-breaker durasi waktu submit tercepat.
+        </p>
+      </div>
+    </div>
+
+    <div class="table-scroll-hint">
+      <span>↔</span> Geser tabel ke samping untuk melihat detail rincian skor
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width: 60px; text-align: center;">Peringkat</th>
+            <th>Peserta & Institusi</th>
+            <th>Babak Kompetisi</th>
+            <th>Nilai MCQ</th>
+            <th>Nilai Essay</th>
+            <th style="color: #34d399;">Total Skor</th>
+            <th>Durasi Ujian</th>
+            <th>Waktu Submit</th>
+            <th style="text-align: right;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in ranked_list %}
+            <tr style="{% if item.rank <= 3 %}background: rgba(0, 240, 255, 0.02);{% endif %}">
+              <td style="text-align: center;">
+                {% if item.rank == 1 %}
+                  <span title="Juara 1" style="font-size: 1.3rem; filter: drop-shadow(0 0 8px #fbbf24);">🥇</span>
+                {% elif item.rank == 2 %}
+                  <span title="Juara 2" style="font-size: 1.3rem; filter: drop-shadow(0 0 8px #94a3b8);">🥈</span>
+                {% elif item.rank == 3 %}
+                  <span title="Juara 3" style="font-size: 1.3rem; filter: drop-shadow(0 0 8px #f97316);">🥉</span>
+                {% else %}
+                  <span class="code-font" style="font-weight: 700; font-size: 0.92rem; color: var(--text-muted);">#{{ item.rank }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">
+                  {{ item.attempt.participant.username }}
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-muted);">
+                  {{ item.attempt.participant.institution|default:"Independen" }}
+                </div>
+              </td>
+              <td style="font-size: 0.86rem; color: var(--text-secondary);">
+                {{ item.attempt.competition.title }}
+              </td>
+              <td>
+                <span class="code-font" style="font-weight: 600; color: #60a5fa; font-size: 0.9rem;">
+                  {{ item.grade.mcq_score|default:"0.00" }}
+                </span>
+              </td>
+              <td>
+                <span class="code-font" style="font-weight: 600; color: #a78bfa; font-size: 0.9rem;">
+                  {{ item.grade.essay_score|default:"0.00" }}
+                </span>
+              </td>
+              <td>
+                <span class="code-font" style="font-weight: 800; color: #34d399; font-size: 1.05rem;">
+                  {{ item.grade.total_score|default:"0.00" }}
+                </span>
+              </td>
+              <td class="code-font" style="font-size: 0.84rem; color: #fbbf24; font-weight: 600;">
+                {{ item.duration_str }}
+              </td>
+              <td style="font-size: 0.8rem; color: var(--text-muted);">
+                {{ item.attempt.submitted_at|date:"d M Y, H:i:s"|default:"-" }}
+              </td>
+              <td style="text-align: right;">
+                <span class="badge-clean badge-green" style="font-size: 0.76rem;">
+                  {{ item.attempt.get_status_display }}
+                </span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 48px;">
+                Belum ada peserta yang menyelesaikan ujian pada kriteria pencarian ini.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

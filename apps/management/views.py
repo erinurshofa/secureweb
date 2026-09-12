@@ -237,9 +237,10 @@ def competition_quick_create(request):
 
 @organizer_or_admin_required
 def questions_manage(request):
-    """Manajemen Bank Soal & Opsi Jawaban Modern."""
+    """Manajemen Bank Soal & Opsi Jawaban Modern (Mendukung ratusan hingga ribuan soal)."""
     comp_id = request.GET.get('competition_id')
     q_type = request.GET.get('type')
+    search_q = request.GET.get('q', '').strip()
     
     questions = Question.objects.select_related('competition', 'created_by').prefetch_related('options', 'attachments')
     
@@ -247,6 +248,12 @@ def questions_manage(request):
         questions = questions.filter(competition_id=comp_id)
     if q_type:
         questions = questions.filter(type=q_type)
+    if search_q:
+        questions = questions.filter(
+            Q(title__icontains=search_q) |
+            Q(body__icontains=search_q) |
+            Q(rubric_guidelines__icontains=search_q)
+        )
         
     questions = questions.order_by('sequence')
     competitions = Competition.objects.all()
@@ -258,6 +265,7 @@ def questions_manage(request):
         'total_points': total_points,
         'selected_comp': comp_id,
         'selected_type': q_type,
+        'search_q': search_q,
         'active_tab': 'questions'
     }
     return render(request, 'management/questions.html', context)
@@ -500,34 +508,155 @@ def questions_batch_create(request):
 
 @staff_or_admin_required
 def attempts_monitor(request):
-    """Live Monitoring Sesi Ujian Peserta."""
-    attempts = ExamAttempt.objects.select_related('participant', 'competition').prefetch_related('grade', 'answers').order_by('-start_time')
+    """
+    Live Monitoring Sesi Ujian Peserta.
+    Dapat diakses oleh Panitia, Super Admin, dan Dewan Juri.
+    Mendukung pencarian nama/institusi, filter kompetisi, filter status,
+    dan pengurutan berdasarkan poin paling banyak (skor tertinggi).
+    """
+    competitions = Competition.objects.all().order_by('-created_at')
+    
+    comp_id = request.GET.get('competition_id', '').strip()
+    status = request.GET.get('status', '').strip()
+    search_q = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort_by', 'score') # default: poin paling banyak (skor tertinggi)
+
+    attempts = ExamAttempt.objects.select_related('participant', 'competition').prefetch_related('grade', 'answers')
+
+    if comp_id:
+        attempts = attempts.filter(competition_id=comp_id)
+    if status:
+        attempts = attempts.filter(status=status)
+    if search_q:
+        attempts = attempts.filter(
+            Q(participant__username__icontains=search_q) |
+            Q(participant__first_name__icontains=search_q) |
+            Q(participant__institution__icontains=search_q) |
+            Q(competition__title__icontains=search_q)
+        )
+
+    if sort_by == 'start_time':
+        attempts = attempts.order_by('-start_time')
+    else: # default 'score' -> poin paling banyak
+        attempts = attempts.order_by('-grade__total_score', 'submitted_at', '-start_time')
     
     now = timezone.now()
-    active_count = attempts.filter(status=AttemptStatus.IN_PROGRESS).count()
+    active_count = ExamAttempt.objects.filter(status=AttemptStatus.IN_PROGRESS).count()
+
+    is_judge = (request.user.role == UserRole.JUDGE and not (request.user.is_superuser or request.user.role in [UserRole.SUPER_ADMIN, UserRole.ORGANIZER]))
 
     context = {
         'attempts': attempts,
+        'competitions': competitions,
+        'selected_comp': comp_id,
+        'selected_status': status,
+        'search_q': search_q,
+        'sort_by': sort_by,
         'now': now,
         'active_count': active_count,
+        'is_judge': is_judge,
         'active_tab': 'attempts'
     }
     return render(request, 'management/attempts.html', context)
 
 
 @staff_or_admin_required
+def ranking_leaderboard(request):
+    """
+    Pusat Papan Peringkat & Leaderboard Juara Ujian.
+    Dapat diakses oleh Panitia, Super Admin, dan Dewan Juri untuk memantau peringkat,
+    peserta dengan poin tertinggi, breakdown nilai MCQ vs Essay, dan durasi pengerjaan.
+    """
+    competitions = Competition.objects.all().order_by('-created_at')
+    comp_id = request.GET.get('competition_id', '')
+    search_q = request.GET.get('q', '').strip()
+
+    attempts = ExamAttempt.objects.select_related('participant', 'competition').prefetch_related('grade').filter(
+        status__in=[AttemptStatus.SUBMITTED, AttemptStatus.AUTO_SUBMITTED]
+    )
+
+    if comp_id:
+        attempts = attempts.filter(competition_id=comp_id)
+
+    if search_q:
+        attempts = attempts.filter(
+            Q(participant__username__icontains=search_q) |
+            Q(participant__institution__icontains=search_q) |
+            Q(competition__title__icontains=search_q)
+        )
+
+    # Urutkan berdasarkan total skor tertinggi, lalu waktu submit tercepat (tie-breaker)
+    attempts = attempts.order_by('-grade__total_score', 'submitted_at')
+
+    ranked_list = []
+    for rank, att in enumerate(attempts, 1):
+        grade = getattr(att, 'grade', None)
+        duration_str = "-"
+        if att.start_time and att.submitted_at:
+            delta = att.submitted_at - att.start_time
+            m, s = divmod(int(delta.total_seconds()), 60)
+            h, m = divmod(m, 60)
+            duration_str = f"{h}j {m}m {s}d" if h else f"{m}m {s}d"
+
+        ranked_list.append({
+            'rank': rank,
+            'attempt': att,
+            'grade': grade,
+            'duration_str': duration_str,
+            'is_top3': rank <= 3
+        })
+
+    top_3 = ranked_list[:3]
+
+    context = {
+        'ranked_list': ranked_list,
+        'top_3': top_3,
+        'competitions': competitions,
+        'selected_comp': comp_id,
+        'search_q': search_q,
+        'total_participants_ranked': len(ranked_list),
+        'active_tab': 'ranking'
+    }
+    return render(request, 'management/ranking.html', context)
+
+
+@staff_or_admin_required
 def api_attempts_list(request):
-    """API Real-time untuk Live Monitoring Sesi Ujian."""
-    attempts_qs = ExamAttempt.objects.select_related('participant', 'competition').prefetch_related('grade', 'answers').order_by('-start_time')
+    """API Real-time untuk Live Monitoring Sesi Ujian (mendukung filter & pencarian)."""
+    comp_id = request.GET.get('competition_id', '').strip()
+    status = request.GET.get('status', '').strip()
+    search_q = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort_by', 'score')
+
+    attempts_qs = ExamAttempt.objects.select_related('participant', 'competition').prefetch_related('grade', 'answers')
+
+    if comp_id:
+        attempts_qs = attempts_qs.filter(competition_id=comp_id)
+    if status:
+        attempts_qs = attempts_qs.filter(status=status)
+    if search_q:
+        attempts_qs = attempts_qs.filter(
+            Q(participant__username__icontains=search_q) |
+            Q(participant__first_name__icontains=search_q) |
+            Q(participant__institution__icontains=search_q) |
+            Q(competition__title__icontains=search_q)
+        )
+
+    if sort_by == 'start_time':
+        attempts_qs = attempts_qs.order_by('-start_time')
+    else: # default 'score'
+        attempts_qs = attempts_qs.order_by('-grade__total_score', 'submitted_at', '-start_time')
+
     now = timezone.now()
     data = []
-    for att in attempts_qs:
+    for idx, att in enumerate(attempts_qs, 1):
         remaining_seconds = max(0, int((att.server_deadline - now).total_seconds())) if att.status == AttemptStatus.IN_PROGRESS else 0
         rem_m, rem_s = divmod(remaining_seconds, 60)
         rem_h, rem_m = divmod(rem_m, 60)
         remaining_formatted = f"{rem_h:02d}:{rem_m:02d}:{rem_s:02d}"
 
         data.append({
+            'rank': idx,
             'id': str(att.id),
             'username': att.participant.username,
             'institution': att.participant.institution or 'Independen',
@@ -544,7 +673,7 @@ def api_attempts_list(request):
 
     return JsonResponse({
         'status': 'success',
-        'active_count': attempts_qs.filter(status=AttemptStatus.IN_PROGRESS).count(),
+        'active_count': ExamAttempt.objects.filter(status=AttemptStatus.IN_PROGRESS).count(),
         'attempts': data
     })
 
