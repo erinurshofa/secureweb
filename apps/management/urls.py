@@ -36,4 +36,12 @@ urlpatterns = [
 
     # Export Rekap Nilai CSV
     path('export/scores/', views.export_scores_csv, name='manage_export_scores_csv'),
+
+    # Disaster Recovery, Backup & Restore (Exclusive for Lead Developer)
+    path('system/backup/', views.system_backup_view, name='manage_system_backup'),
+    path('system/backup/create/', views.system_backup_create, name='manage_system_backup_create'),
+    path('system/backup/upload/', views.system_backup_upload, name='manage_system_backup_upload'),
+    path('system/backup/<str:filename>/download/', views.system_backup_download, name='manage_system_backup_download'),
+    path('system/backup/<str:filename>/restore/', views.system_backup_restore, name='manage_system_backup_restore'),
+    path('system/backup/<str:filename>/delete/', views.system_backup_delete, name='manage_system_backup_delete'),
 ]

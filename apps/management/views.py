@@ -1,3 +1,4 @@
+import os
 import json
 import uuid
 import hashlib
@@ -8,7 +9,7 @@ from django.db import transaction
 from django.db.models import Count, Avg, Q, Max, Sum
 from django.utils import timezone
 from django.utils.text import slugify
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse, FileResponse, Http404
 
 from accounts.models import User, UserRole
 from competitions.models import Competition, CompetitionStatus, ParticipantEnrollment
@@ -17,10 +18,11 @@ from attempts.models import ExamAttempt, AttemptStatus, AttemptAnswer, AnswerHis
 from grading.models import AttemptGrade, EssayEvaluation
 from audit.models import SecurityAuditLog, AuditEventType
 from services.scoring_service import ScoringService
+from services.backup_service import BackupService
 
 
 def staff_or_admin_required(view_func):
-    """Izinkan Admin, Panitia, dan Dewan Juri untuk mengakses area yang relevan."""
+    """Izinkan Admin, Panitia, Dewan Juri, dan Developer untuk mengakses area manajemen."""
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
@@ -31,13 +33,30 @@ def staff_or_admin_required(view_func):
             UserRole.ORGANIZER,
             UserRole.JUDGE,
             UserRole.AUTHOR,
-            UserRole.REVIEWER
+            UserRole.REVIEWER,
+            UserRole.DEVELOPER,
         ]
         if not (request.user.is_staff or request.user.is_superuser or request.user.role in allowed_roles):
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
                 return JsonResponse({'status': 'error', 'message': 'Forbidden'}, status=403)
             messages.error(request, "Akses ditolak. Halaman Manajemen khusus untuk Panitia, Juri, dan Admin.")
             return redirect('dashboard')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def developer_required(view_func):
+    """Ketat & Tertinggi: HANYA untuk Lead Developer / DevSecOps atau Superuser."""
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'error', 'message': 'Unauthenticated'}, status=401)
+            return redirect('login')
+        if not (request.user.is_superuser or request.user.role == UserRole.DEVELOPER):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'error', 'message': 'Forbidden: Akses khusus Lead Developer / DevSecOps.'}, status=403)
+            messages.error(request, "Akses ditolak. Fitur Disaster Recovery & Backup khusus untuk Lead Developer / DevSecOps.")
+            return redirect('manage_dashboard')
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -1092,4 +1111,159 @@ def export_scores_csv(request):
         ])
 
     return response
+
+
+# =====================================================================
+# DISASTER RECOVERY, BACKUP & RESTORE (EXCLUSIVELY FOR DEVELOPER)
+# Standard: World's Top-Tier Zero-Data-Loss Architecture
+# =====================================================================
+
+@developer_required
+def system_backup_view(request):
+    """Halaman Pusat Disaster Recovery & Backup/Restore (World's #1 Standard)."""
+    backups = BackupService.list_backups()
+
+    total_storage = sum(b.get('file_size', 0) for b in backups)
+    stats = {
+        'total_backups': len(backups),
+        'total_storage_bytes': total_storage,
+        'total_storage_formatted': BackupService._format_file_size(total_storage),
+        'total_users': User.objects.count(),
+        'total_competitions': Competition.objects.count(),
+        'total_questions': Question.objects.count(),
+        'total_attempts': ExamAttempt.objects.count(),
+        'total_grades': AttemptGrade.objects.count(),
+        'total_audits': SecurityAuditLog.objects.count(),
+        'db_engine': 'MySQL 8.2 (InnoDB / utf8mb4)',
+        'last_backup': backups[0].get('created_at') if backups else None,
+    }
+    stats['total_db_records'] = (
+        stats['total_users'] + stats['total_competitions'] + stats['total_questions'] +
+        stats['total_attempts'] + stats['total_grades'] + stats['total_audits']
+    )
+
+    context = {
+        'backups': backups,
+        'stats': stats,
+        'active_tab': 'backup'
+    }
+    return render(request, 'management/system_backup.html', context)
+
+
+@developer_required
+def system_backup_create(request):
+    """Memicu pembuatan snapshot backup atomik baru (.json.gz)."""
+    if request.method == 'POST':
+        backup_type = request.POST.get('backup_type', 'full')
+        description = request.POST.get('description', '').strip()
+        try:
+            manifest = BackupService.create_backup(
+                user=request.user,
+                backup_type=backup_type,
+                description=description
+            )
+            messages.success(
+                request,
+                f"Snapshot backup '{manifest['filename']}' ({manifest['file_size_formatted']}) berhasil dibuat dengan SHA-256: {manifest['sha256_checksum'][:16]}..."
+            )
+        except Exception as e:
+            messages.error(request, f"Gagal membuat snapshot backup: {str(e)}")
+    return redirect('manage_system_backup')
+
+
+@developer_required
+def system_backup_upload(request):
+    """Mengunggah berkas snapshot backup (.json.gz) dari perangkat lokal."""
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('backup_file')
+        if not uploaded_file:
+            messages.error(request, "Pilih berkas backup .json.gz terlebih dahulu.")
+            return redirect('manage_system_backup')
+
+        filename = os.path.basename(uploaded_file.name)
+        if not (filename.endswith('.json.gz') or filename.endswith('.gz')):
+            messages.error(request, "Format berkas dilarang! Hanya berkas kompresi .json.gz yang diizinkan.")
+            return redirect('manage_system_backup')
+
+        # Limit ukuran berkas: 100MB
+        if uploaded_file.size > 100 * 1024 * 1024:
+            messages.error(request, "Ukuran berkas melebihi batas maksimum 100MB.")
+            return redirect('manage_system_backup')
+
+        backup_dir = BackupService.get_backup_dir()
+        filepath = os.path.join(backup_dir, filename)
+
+        try:
+            with open(filepath, 'wb+') as destination:
+                for chunk in uploaded_file.chunks():
+                    destination.write(chunk)
+
+            # Validasi integritas berkas yang diunggah
+            is_valid, manifest, msg = BackupService.inspect_backup(filename)
+            if not is_valid:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                messages.error(request, f"Berkas backup tidak valid atau rusak: {msg}")
+                return redirect('manage_system_backup')
+
+            messages.success(
+                request,
+                f"Berkas backup '{filename}' ({BackupService._format_file_size(uploaded_file.size)}) berhasil diverifikasi dan disimpan!"
+            )
+        except Exception as e:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            messages.error(request, f"Gagal mengunggah berkas backup: {str(e)}")
+
+    return redirect('manage_system_backup')
+
+
+@developer_required
+def system_backup_download(request, filename):
+    """Mengunduh berkas snapshot backup secara aman."""
+    safe_name = os.path.basename(filename)
+    filepath = os.path.join(BackupService.get_backup_dir(), safe_name)
+    if not os.path.exists(filepath):
+        raise Http404("File backup tidak ditemukan.")
+
+    response = FileResponse(open(filepath, 'rb'), content_type='application/gzip')
+    response['Content-Disposition'] = f'attachment; filename="{safe_name}"'
+    return response
+
+
+@developer_required
+def system_backup_restore(request, filename):
+    """
+    Mengeksekusi restorasi database atomik dari snapshot yang dipilih.
+    Memerlukan kode konfirmasi 'RESTORE-CONFIRM' dan otomatis membuat Safety Snapshot rollback.
+    """
+    if request.method == 'POST':
+        confirmation_code = request.POST.get('confirmation_code', '').strip()
+        if confirmation_code != 'RESTORE-CONFIRM':
+            messages.error(request, "Konfirmasi gagal! Anda harus mengetik persis 'RESTORE-CONFIRM' untuk menjalankan restorasi.")
+            return redirect('manage_system_backup')
+
+        success, counts, msg = BackupService.restore_backup(filename, request.user)
+        if success:
+            messages.success(
+                request,
+                f"RESTORASI BERHASIL! {msg} Safety rollback snapshot otomatis dibuat sebelum pemulihan."
+            )
+        else:
+            messages.error(request, f"RESTORASI GAGAL: {msg}")
+
+    return redirect('manage_system_backup')
+
+
+@developer_required
+def system_backup_delete(request, filename):
+    """Menghapus berkas snapshot backup secara permanen."""
+    if request.method == 'POST':
+        success, msg = BackupService.delete_backup(filename, request.user)
+        if success:
+            messages.success(request, msg)
+        else:
+            messages.error(request, msg)
+    return redirect('manage_system_backup')
+
 

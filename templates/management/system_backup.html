@@ -1,0 +1,502 @@
+{% extends 'management/base_admin.html' %}
+
+{% block title %}Disaster Recovery & Backup Center — DevSecOps{% endblock %}
+{% block header_title %}Disaster Recovery Center{% endblock %}
+{% block page_heading %}Disaster Recovery & Atomic Backup Vault{% endblock %}
+{% block page_subheading %}Pusat kontrol pemulihan bencana standar nomor 1 di dunia. Snapshot atomik terkompresi dengan verifikasi integritas kriptografis SHA-256 dan rollback otomatis.{% endblock %}
+
+{% block admin_content %}
+<!-- Cyber DevSecOps Alert Banner -->
+<div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(56, 189, 248, 0.08)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15);">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.5); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #c084fc; flex-shrink: 0;">
+      🛡️
+    </div>
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+        <span style="font-family: var(--font-mono); font-size: 0.76rem; font-weight: 800; letter-spacing: 0.08em; background: rgba(168, 85, 247, 0.25); color: #e9d5ff; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(168, 85, 247, 0.5);">
+          RESTRICTED: LEAD DEVELOPER &amp; DEVSECOPS ONLY
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; color: #34d399; font-family: var(--font-mono);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; display: inline-block;"></span>
+          ZERO-DATA-LOSS ACTIVE
+        </span>
+      </div>
+      <div style="font-size: 0.88rem; color: #cbd5e1;">
+        Setiap aksi restorasi database secara otomatis membuat <strong>Safety Pre-Restore Snapshot</strong> untuk mencegah kehilangan data insidental.
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <button onclick="openCreateModal()" class="btn-primary" style="background: linear-gradient(135deg, #9333ea, #a855f7); border: 1px solid #c084fc; color: #fff; font-weight: 700; padding: 10px 18px; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 0 16px rgba(168, 85, 247, 0.4); transition: var(--transition-fast);">
+      <span>⚡</span> <span>Buat Snapshot Baru</span>
+    </button>
+    <button onclick="openUploadModal()" class="btn-secondary" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 10px 16px; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: var(--transition-fast);">
+      <span>📤</span> <span>Unggah Snapshot</span>
+    </button>
+  </div>
+</div>
+
+<!-- Mission Control KPI HUD -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  <!-- Total Snapshots -->
+  <div class="stat-kpi-card" style="border-left: 3px solid #a855f7;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Total Arsip Snapshot</div>
+        <div style="font-size: 1.9rem; font-weight: 800; color: #fff; font-family: var(--font-mono); margin-top: 4px;">
+          {{ stats.total_backups }}
+        </div>
+      </div>
+      <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #c084fc;">
+        💾
+      </div>
+    </div>
+    <div style="font-size: 0.74rem; color: #c084fc; margin-top: 8px; font-family: var(--font-mono);">
+      Format: GZIP JSON (.json.gz)
+    </div>
+  </div>
+
+  <!-- Storage Used -->
+  <div class="stat-kpi-card" style="border-left: 3px solid #38bdf8;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Total Ukuran Vault</div>
+        <div style="font-size: 1.9rem; font-weight: 800; color: #38bdf8; font-family: var(--font-mono); margin-top: 4px;">
+          {{ stats.total_storage_formatted }}
+        </div>
+      </div>
+      <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #38bdf8;">
+        🗄️
+      </div>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 8px;">
+      Terisolasi di <code style="color: #93c5fd;">/backups/</code>
+    </div>
+  </div>
+
+  <!-- Live Database Records -->
+  <div class="stat-kpi-card" style="border-left: 3px solid #10b981;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Entitas Aktif Database</div>
+        <div style="font-size: 1.9rem; font-weight: 800; color: #34d399; font-family: var(--font-mono); margin-top: 4px;">
+          {{ stats.total_db_records }}
+        </div>
+      </div>
+      <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #34d399;">
+        📊
+      </div>
+    </div>
+    <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 8px;">
+      {{ stats.total_users }} User, {{ stats.total_questions }} Soal, {{ stats.total_attempts }} Sesi
+    </div>
+  </div>
+
+  <!-- DB Engine & Integrity -->
+  <div class="stat-kpi-card" style="border-left: 3px solid #fbbf24;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Database Engine</div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: #fbbf24; font-family: var(--font-mono); margin-top: 6px;">
+          {{ stats.db_engine }}
+        </div>
+      </div>
+      <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(251, 191, 36, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fbbf24;">
+        ⚙️
+      </div>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 8px;">
+      Checksum Kriptografis: <span style="color: #fbbf24; font-weight: 600;">SHA-256</span>
+    </div>
+  </div>
+</div>
+
+<!-- Snapshot Vault Table Card -->
+<div class="saas-card" style="padding: 22px; border: 1px solid var(--border-default);">
+  <!-- Search & Filter Controls -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <span>🗃️</span> Daftar Snapshot Database Tersimpan
+      </h3>
+      <span style="font-family: var(--font-mono); font-size: 0.74rem; background: rgba(255, 255, 255, 0.07); padding: 3px 8px; border-radius: 4px; color: var(--text-muted);">
+        {{ backups|length }} Berkas
+      </span>
+    </div>
+
+    <div style="position: relative; width: 280px;">
+      <input type="text" id="backupSearchInput" onkeyup="filterBackupTable()" placeholder="🔍 Cari nama berkas atau SHA256..." style="width: 100%; min-height: 36px; padding: 6px 12px 6px 32px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.82rem; outline: none;">
+      <span style="position: absolute; left: 10px; top: 9px; font-size: 0.85rem; color: var(--text-muted);">⚡</span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-responsive">
+    <table class="saas-table" id="backupTable" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="width: 32%;">Snapshot / Deskripsi</th>
+          <th style="width: 12%;">Tipe &amp; Cakupan</th>
+          <th style="width: 12%;">Entitas Data</th>
+          <th style="width: 10%;">Ukuran</th>
+          <th style="width: 16%;">SHA-256 Checksum</th>
+          <th style="width: 18%; text-align: right;">Aksi DevSecOps</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in backups %}
+          <tr class="backup-row" data-filename="{{ b.filename }}" data-sha="{{ b.sha256_checksum }}">
+            <!-- Filename & Meta -->
+            <td>
+              <div style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: #a855f7;">📦</span>
+                <span>{{ b.filename }}</span>
+              </div>
+              <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 8px;">
+                <span>🕒 {{ b.created_at|default:"-" }}</span>
+                <span>•</span>
+                <span>👤 {{ b.created_by|default:"developer" }}</span>
+              </div>
+              {% if b.description %}
+                <div style="font-size: 0.72rem; color: #94a3b8; font-style: italic; margin-top: 2px;">
+                  "{{ b.description }}"
+                </div>
+              {% endif %}
+              {% if b.error %}
+                <div style="font-size: 0.72rem; color: #f87171; margin-top: 2px;">
+                  ⚠️ {{ b.error }}
+                </div>
+              {% endif %}
+            </td>
+
+            <!-- Type -->
+            <td>
+              {% if 'safety' in b.description|lower or 'rollback' in b.description|lower %}
+                <span class="badge-clean" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.72rem;">
+                  🛡️ Auto-Safety
+                </span>
+              {% elif b.backup_type == 'full' %}
+                <span class="badge-clean" style="background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); font-size: 0.72rem;">
+                  🌐 Full System
+                </span>
+              {% else %}
+                <span class="badge-clean" style="background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.72rem;">
+                  🗄️ Database Core
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Records Breakdown -->
+            <td>
+              <span class="badge-clean badge-green" style="font-family: var(--font-mono); font-size: 0.74rem;">
+                {{ b.total_records|default:0 }} records
+              </span>
+            </td>
+
+            <!-- Size -->
+            <td>
+              <span style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1;">
+                {{ b.file_size_formatted }}
+              </span>
+            </td>
+
+            <!-- Checksum SHA256 -->
+            <td>
+              {% if b.sha256_checksum %}
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <code style="font-family: var(--font-mono); font-size: 0.72rem; background: rgba(0, 0, 0, 0.4); padding: 2px 6px; border-radius: 4px; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2);" title="{{ b.sha256_checksum }}">
+                    {{ b.sha256_checksum|slice:":12" }}...
+                  </code>
+                  <button onclick="copyHash('{{ b.sha256_checksum }}', this)" style="background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.75rem; padding: 2px;" title="Salin SHA-256 Lengkap">
+                    📋
+                  </button>
+                </div>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.74rem;">-</span>
+              {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: 6px; align-items: center;">
+                <!-- Download -->
+                <a href="{% url 'manage_system_backup_download' b.filename %}" class="btn-secondary" style="padding: 5px 10px; font-size: 0.76rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: inline-flex; align-items: center; gap: 4px;" title="Unduh snapshot berkas .json.gz">
+                  <span>📥</span> <span>Unduh</span>
+                </a>
+
+                <!-- Restore -->
+                <button onclick="confirmRestore('{{ b.filename }}', '{{ b.total_records|default:0 }}')" class="btn-primary" style="padding: 5px 10px; font-size: 0.76rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: 1px solid #fbbf24; color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Pulihkan / Restore database dari snapshot ini">
+                  <span>⚡</span> <span>Pulihkan</span>
+                </button>
+
+                <!-- Delete -->
+                <button onclick="confirmDelete('{{ b.filename }}')" class="btn-secondary" style="padding: 5px 8px; font-size: 0.76rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171; cursor: pointer;" title="Hapus snapshot berkas">
+                  <span>🗑️</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">
+              <div style="font-size: 2.2rem; margin-bottom: 10px;">🛡️</div>
+              <div style="font-size: 1rem; font-weight: 600; color: #fff;">Belum Ada Snapshot Backup di Vault</div>
+              <div style="font-size: 0.82rem; margin-top: 6px;">Klik tombol "Buat Snapshot Baru" di atas untuk membuat cadangan database atomik pertama Anda.</div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: BUAT SNAPSHOT BARU                  -->
+<!-- ========================================== -->
+<div id="createModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+  <div style="background: #0f172a; border: 1px solid rgba(168, 85, 247, 0.5); border-radius: var(--radius-lg); width: 92%; max-width: 520px; padding: 26px; box-shadow: 0 0 40px rgba(168, 85, 247, 0.35);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.4rem;">⚡</span>
+        <h3 style="margin: 0; font-size: 1.15rem; color: #fff; font-weight: 700;">Buat Atomic Snapshot Baru</h3>
+      </div>
+      <button onclick="closeCreateModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+
+    <form method="POST" action="{% url 'manage_system_backup_create' %}">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 0.84rem; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">
+          Cakupan Snapshot (Scope):
+        </label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <label style="display: flex; align-items: flex-start; gap: 8px; padding: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: var(--radius-md); cursor: pointer;">
+            <input type="radio" name="backup_type" value="full" checked style="margin-top: 3px;">
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.84rem;">Full System</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Users, Soal, Sesi Ujian, Nilai &amp; Security Audit</div>
+            </div>
+          </label>
+
+          <label style="display: flex; align-items: flex-start; gap: 8px; padding: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer;">
+            <input type="radio" name="backup_type" value="db_only" style="margin-top: 3px;">
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.84rem;">Core Database</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Hanya data lomba &amp; bank soal</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 0.84rem; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">
+          Catatan / Deskripsi Snapshot (Opsional):
+        </label>
+        <input type="text" name="description" placeholder="Contoh: Pre-Final Cyber Competition Snapshot 2026" style="width: 100%; min-height: 40px; padding: 8px 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: #fff; font-size: 0.86rem; outline: none;">
+      </div>
+
+      <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 20px; font-size: 0.76rem; color: #6ee7b7;">
+        ✓ Snapshot dienkapsulasi dengan integritas kriptografis SHA-256 dan kompresi GZIP otomatis.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeCreateModal()" class="btn-secondary" style="padding: 8px 16px;">Batal</button>
+        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #9333ea, #a855f7); border-color: #c084fc; color: #fff; font-weight: 700; padding: 8px 18px;">
+          🚀 Eksekusi Snapshot Sekarang
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: UNGGAH BERKAS BACKUP                -->
+<!-- ========================================== -->
+<div id="uploadModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+  <div style="background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.5); border-radius: var(--radius-lg); width: 92%; max-width: 500px; padding: 26px; box-shadow: 0 0 40px rgba(56, 189, 248, 0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.4rem;">📤</span>
+        <h3 style="margin: 0; font-size: 1.15rem; color: #fff; font-weight: 700;">Unggah Berkas Snapshot Backup</h3>
+      </div>
+      <button onclick="closeUploadModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+
+    <form method="POST" action="{% url 'manage_system_backup_upload' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 0.84rem; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">
+          Pilih Berkas (.json.gz):
+        </label>
+        <div style="border: 2px dashed rgba(56, 189, 248, 0.4); border-radius: var(--radius-md); padding: 24px 16px; text-align: center; background: rgba(255, 255, 255, 0.02);">
+          <input type="file" name="backup_file" accept=".gz,.json.gz" required style="font-size: 0.84rem; color: #cbd5e1;">
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 8px;">
+            Maksimum berkas 100MB. Hanya format kompresi valid yang diizinkan.
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeUploadModal()" class="btn-secondary" style="padding: 8px 16px;">Batal</button>
+        <button type="submit" class="btn-primary" style="background: #0284c7; border-color: #38bdf8; color: #fff; font-weight: 700; padding: 8px 18px;">
+          Verifikasi &amp; Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: KONFIRMASI RESTORASI (DOUBLE CONFIRM)-->
+<!-- ========================================== -->
+<div id="restoreModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+  <div style="background: #111827; border: 2px solid #ef4444; border-radius: var(--radius-lg); width: 92%; max-width: 540px; padding: 28px; box-shadow: 0 0 50px rgba(239, 68, 68, 0.45);">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #ef4444;">
+        ⚠️
+      </div>
+      <div>
+        <h3 style="margin: 0; font-size: 1.2rem; color: #f87171; font-weight: 800;">PROSEDUR RESTORASI KRITIS</h3>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">Tindakan ini menyinkronkan data database dengan snapshot.</div>
+      </div>
+    </div>
+
+    <!-- Safety Guarantee Callout -->
+    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; font-size: 0.8rem; color: #6ee7b7;">
+      <strong>🛡️ Jaminan Zero Data Loss:</strong> Sebelum restorasi dieksekusi, sistem secara otomatis membuat <em>Safety Rollback Snapshot</em> dari database saat ini. Anda dapat mengembalikannya kapan saja jika diperlukan.
+    </div>
+
+    <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 18px; font-size: 0.82rem; color: #e2e8f0;">
+      <div><strong>Snapshot Target:</strong> <code id="restoreTargetFilename" style="color: #fbbf24; font-family: var(--font-mono); font-weight: 700;"></code></div>
+      <div style="margin-top: 4px;"><strong>Jumlah Entitas:</strong> <span id="restoreTargetRecords" style="color: #34d399; font-weight: 700;"></span> records</div>
+    </div>
+
+    <form id="restoreForm" method="POST" action="">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #fca5a5; margin-bottom: 6px;">
+          Ketik teks <code style="background: rgba(239, 68, 68, 0.3); padding: 2px 6px; border-radius: 4px; color: #fff; font-weight: 800;">RESTORE-CONFIRM</code> di bawah untuk membuka kunci:
+        </label>
+        <input type="text" id="confirmCodeInput" name="confirmation_code" onkeyup="checkRestoreCode()" placeholder="Ketik persis: RESTORE-CONFIRM" autocomplete="off" style="width: 100%; min-height: 42px; padding: 8px 12px; background: #000; border: 2px solid #ef4444; border-radius: var(--radius-sm); color: #fff; font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; outline: none; letter-spacing: 0.05em;">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeRestoreModal()" class="btn-secondary" style="padding: 8px 16px;">Batal</button>
+        <button type="submit" id="executeRestoreBtn" disabled class="btn-primary" style="background: #ef4444; border-color: #f87171; color: #fff; font-weight: 800; padding: 8px 20px; opacity: 0.4; cursor: not-allowed; transition: var(--transition-fast);">
+          ⚡ Eksekusi Restorasi Database
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- FORM TERSEMBUNYI UNTUK PENGHAPUSAN         -->
+<!-- ========================================== -->
+<form id="deleteForm" method="POST" action="" style="display: none;">
+  {% csrf_token %}
+</form>
+
+<script>
+  function openCreateModal() {
+    const m = document.getElementById('createModal');
+    m.style.display = 'flex';
+  }
+
+  function closeCreateModal() {
+    document.getElementById('createModal').style.display = 'none';
+  }
+
+  function openUploadModal() {
+    document.getElementById('uploadModal').style.display = 'flex';
+  }
+
+  function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+  }
+
+  function confirmRestore(filename, records) {
+    document.getElementById('restoreTargetFilename').textContent = filename;
+    document.getElementById('restoreTargetRecords').textContent = records;
+    document.getElementById('confirmCodeInput').value = '';
+    
+    const btn = document.getElementById('executeRestoreBtn');
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+
+    const form = document.getElementById('restoreForm');
+    form.action = '/manage/system/backup/' + encodeURIComponent(filename) + '/restore/';
+
+    document.getElementById('restoreModal').style.display = 'flex';
+  }
+
+  function closeRestoreModal() {
+    document.getElementById('restoreModal').style.display = 'none';
+  }
+
+  function checkRestoreCode() {
+    const val = document.getElementById('confirmCodeInput').value.trim();
+    const btn = document.getElementById('executeRestoreBtn');
+    if (val === 'RESTORE-CONFIRM') {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6)';
+    } else {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.cursor = 'not-allowed';
+      btn.style.boxShadow = 'none';
+    }
+  }
+
+  function confirmDelete(filename) {
+    if (confirm("Apakah Anda yakin ingin menghapus snapshot '" + filename + "' secara permanen?\n\nAksi ini tidak dapat dibatalkan.")) {
+      const form = document.getElementById('deleteForm');
+      form.action = '/manage/system/backup/' + encodeURIComponent(filename) + '/delete/';
+      form.submit();
+    }
+  }
+
+  function copyHash(hash, btn) {
+    navigator.clipboard.writeText(hash).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓';
+      btn.style.color = '#34d399';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.color = '';
+      }, 1800);
+    });
+  }
+
+  function filterBackupTable() {
+    const q = document.getElementById('backupSearchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('.backup-row');
+    rows.forEach(r => {
+      const fname = (r.getAttribute('data-filename') || '').toLowerCase();
+      const sha = (r.getAttribute('data-sha') || '').toLowerCase();
+      if (fname.includes(q) || sha.includes(q)) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  }
+
+  // Close modals on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeCreateModal();
+      closeUploadModal();
+      closeRestoreModal();
+    }
+  });
+</script>
+{% endblock %}

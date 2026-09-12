@@ -277,3 +277,96 @@ class ManagementFeaturesTests(TestCase):
         resp = self.client.get(reverse('manage_questions') + f"?competition_id={self.competition.id}&q=105")
         self.assertEqual(resp.status_code, 200)
         self.assertIn(q105, resp.context['questions'])
+
+
+class DeveloperDisasterRecoveryTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.developer = User.objects.create_user(
+            username='dev_tester',
+            password='Password123!',
+            email='dev@test.com',
+            role=UserRole.DEVELOPER,
+            is_staff=True,
+            is_superuser=False
+        )
+        self.judge = User.objects.create_user(
+            username='judge_hacker',
+            password='Password123!',
+            email='judgehacker@test.com',
+            role=UserRole.JUDGE,
+            is_staff=True
+        )
+        self.participant = User.objects.create_user(
+            username='hacker_user',
+            password='Password123!',
+            email='hacker@test.com',
+            role=UserRole.PARTICIPANT
+        )
+        self.created_backups = []
+
+    def tearDown(self):
+        from services.backup_service import BackupService
+        for fname in self.created_backups:
+            BackupService.delete_backup(fname, self.developer)
+
+    def test_developer_access_control(self):
+        """Uji RBAC: Hanya developer & superuser yang dapat mengakses halaman backup."""
+        # Participant ditolak
+        self.client.force_login(self.participant)
+        resp_p = self.client.get(reverse('manage_system_backup'))
+        self.assertIn(resp_p.status_code, [302, 403])
+
+        # Judge ditolak
+        self.client.force_login(self.judge)
+        resp_j = self.client.get(reverse('manage_system_backup'))
+        self.assertIn(resp_j.status_code, [302, 403])
+
+        # Developer diizinkan
+        self.client.force_login(self.developer)
+        resp_d = self.client.get(reverse('manage_system_backup'))
+        self.assertEqual(resp_d.status_code, 200)
+        self.assertContains(resp_d, "Disaster Recovery & Atomic Backup Vault")
+
+    def test_backup_creation_and_integrity(self):
+        """Uji pembuatan snapshot atomik lengkap dengan manifest kriptografis SHA-256."""
+        from services.backup_service import BackupService
+        manifest = BackupService.create_backup(
+            user=self.developer,
+            backup_type='full',
+            description='Test Unit Backup Snapshot'
+        )
+        self.created_backups.append(manifest['filename'])
+
+        self.assertTrue(manifest['filename'].endswith('.json.gz'))
+        self.assertIn('sha256_checksum', manifest)
+        self.assertGreater(len(manifest['sha256_checksum']), 20)
+        self.assertGreater(manifest['total_records'], 0)
+
+        # Inspect and verify checksum
+        is_valid, inspected_manifest, msg = BackupService.inspect_backup(manifest['filename'])
+        self.assertTrue(is_valid)
+        self.assertTrue(inspected_manifest['is_checksum_valid'])
+        self.assertEqual(inspected_manifest['computed_sha256'], manifest['sha256_checksum'])
+
+    def test_restore_requires_exact_confirmation_code(self):
+        """Uji pengamanan restorasi: wajib konfirmasi 'RESTORE-CONFIRM'."""
+        from services.backup_service import BackupService
+        manifest = BackupService.create_backup(
+            user=self.developer,
+            backup_type='full',
+            description='Test Restore Safety'
+        )
+        self.created_backups.append(manifest['filename'])
+
+        self.client.force_login(self.developer)
+        url = reverse('manage_system_backup_restore', args=[manifest['filename']])
+
+        # Salah kode konfirmasi -> Gagal
+        resp_wrong = self.client.post(url, {'confirmation_code': 'SALAH-KODE'})
+        self.assertEqual(resp_wrong.status_code, 302)
+
+        # Kode benar -> Berhasil dieksekusi
+        resp_correct = self.client.post(url, {'confirmation_code': 'RESTORE-CONFIRM'})
+        self.assertEqual(resp_correct.status_code, 302)
+

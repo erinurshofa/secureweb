@@ -71,13 +71,17 @@ env.bak/
 venv.bak/
 
 # ------------------------------------------------------------------------------
-# 4. DATABASE & BACKUP DUMPS (DATA PRIVACY)
+# 4. DATABASE & BACKUP DUMPS (DATA PRIVACY & DISASTER RECOVERY)
 # ------------------------------------------------------------------------------
+backups/
+backups/*
 *.sqlite3
 *.sqlite3-journal
 *.db
 *.sql
 *.sql.gz
+*.json.gz
+*.tar.gz
 *.dump
 db.sqlite3
 
