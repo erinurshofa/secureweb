@@ -43,12 +43,17 @@
         {{ questions|length }} Soal Terdaftar
       </span>
       <span class="badge-clean badge-green" style="font-size: 0.82rem;">
-        Total Bobot: 115.0 Poin
+        Total Bobot: {{ total_points|default:'0' }} Poin
       </span>
     </div>
-    <a href="{% url 'manage_question_create' %}" class="btn-primary" style="padding: 9px 18px; min-height: 40px; font-size: 0.88rem; background: #2563eb;">
-      <span>+</span> <span>Buat Soal Baru</span>
-    </a>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <a href="{% url 'manage_questions_batch' %}" class="btn-secondary" style="padding: 9px 16px; min-height: 40px; font-size: 0.88rem; border-color: rgba(0, 240, 255, 0.4); color: #00f0ff; display: inline-flex; align-items: center; gap: 6px;">
+        <span>⚡</span> <span>Tambah Banyak Soal (Batch)</span>
+      </a>
+      <a href="{% url 'manage_question_create' %}" class="btn-primary" style="padding: 9px 18px; min-height: 40px; font-size: 0.88rem; background: #2563eb; display: inline-flex; align-items: center; gap: 6px;">
+        <span>+</span> <span>Buat Soal Baru</span>
+      </a>
+    </div>
   </div>
 
   <div class="table-scroll-hint">

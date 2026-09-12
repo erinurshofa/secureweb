@@ -1,10 +1,13 @@
+import json
+import uuid
 import hashlib
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Avg, Q
+from django.db.models import Count, Avg, Q, Max, Sum
 from django.utils import timezone
+from django.utils.text import slugify
 from django.http import HttpResponseForbidden, JsonResponse
 
 from accounts.models import User, UserRole
@@ -161,6 +164,78 @@ def competition_status_update(request, competition_id):
 
 
 @organizer_or_admin_required
+def competition_quick_create(request):
+    """
+    Endpoint AJAX untuk membuat kompetisi baru secara instan tanpa reload halaman,
+    memungkinkan panitia langsung memilih babak kompetisi yang baru dibuat.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Hanya metode POST yang diizinkan.'}, status=405)
+
+    title = request.POST.get('title', '').strip()
+    if not title:
+        return JsonResponse({'status': 'error', 'message': 'Judul kompetisi wajib diisi.'}, status=400)
+
+    try:
+        duration_minutes = int(request.POST.get('duration_minutes', 90))
+        if duration_minutes <= 0:
+            duration_minutes = 90
+    except (ValueError, TypeError):
+        duration_minutes = 90
+
+    status = request.POST.get('status', CompetitionStatus.OPEN)
+    if status not in CompetitionStatus.values:
+        status = CompetitionStatus.OPEN
+
+    description = request.POST.get('description', '').strip()
+    
+    try:
+        max_attempts = int(request.POST.get('max_attempts', 1))
+        if max_attempts <= 0:
+            max_attempts = 1
+    except (ValueError, TypeError):
+        max_attempts = 1
+
+    # Default jadwal kompetisi: mulai sekarang, berakhir 7 hari ke depan
+    now = timezone.now()
+    start_time = now
+    end_time = now + timezone.timedelta(days=7)
+
+    # Generate unique slug
+    base_slug = slugify(title) or f"comp-{uuid.uuid4().hex[:8]}"
+    slug = base_slug
+    counter = 1
+    while Competition.objects.filter(slug=slug).exists():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    with transaction.atomic():
+        competition = Competition.objects.create(
+            title=title,
+            slug=slug,
+            description=description,
+            start_time=start_time,
+            end_time=end_time,
+            duration_minutes=duration_minutes,
+            status=status,
+            max_attempts=max_attempts,
+            created_by=request.user
+        )
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f"Kompetisi '{competition.title}' berhasil dibuat.",
+        'competition': {
+            'id': str(competition.id),
+            'title': competition.title,
+            'status': competition.status,
+            'status_display': competition.get_status_display(),
+            'duration_minutes': competition.duration_minutes
+        }
+    })
+
+
+@organizer_or_admin_required
 def questions_manage(request):
     """Manajemen Bank Soal & Opsi Jawaban Modern."""
     comp_id = request.GET.get('competition_id')
@@ -175,10 +250,12 @@ def questions_manage(request):
         
     questions = questions.order_by('sequence')
     competitions = Competition.objects.all()
+    total_points = questions.aggregate(Sum('points'))['points__sum'] or 0
 
     context = {
         'questions': questions,
         'competitions': competitions,
+        'total_points': total_points,
         'selected_comp': comp_id,
         'selected_type': q_type,
         'active_tab': 'questions'
@@ -280,6 +357,145 @@ def question_delete(request, question_id):
         question.delete()
         messages.success(request, "Soal berhasil dihapus.")
     return redirect('manage_questions')
+
+
+@organizer_or_admin_required
+def questions_batch_create(request):
+    """
+    Halaman dan endpoint untuk pembuatan pertanyaan dalam jumlah banyak sekaligus (batch creation).
+    Mendukung input visual multi-baris interaktif maupun impor format JSON/AI secara langsung.
+    """
+    competitions = Competition.objects.all().order_by('-created_at')
+
+    if request.method == 'POST':
+        comp_id = request.POST.get('competition_id')
+        if not comp_id:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'error', 'message': 'Pilih babak kompetisi terlebih dahulu.'}, status=400)
+            messages.error(request, "Pilih babak kompetisi terlebih dahulu.")
+            return redirect('manage_questions_batch')
+
+        competition = get_object_or_404(Competition, id=comp_id)
+        batch_json_raw = request.POST.get('batch_data', '').strip()
+
+        if not batch_json_raw:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'error', 'message': 'Data soal batch tidak boleh kosong.'}, status=400)
+            messages.error(request, "Data soal batch tidak boleh kosong.")
+            return redirect('manage_questions_batch')
+
+        try:
+            items = json.loads(batch_json_raw)
+            if not isinstance(items, list) or len(items) == 0:
+                raise ValueError("Format data harus berupa array daftar soal.")
+        except Exception as e:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'error', 'message': f'Format data batch tidak valid: {str(e)}'}, status=400)
+            messages.error(request, f"Format data batch tidak valid: {str(e)}")
+            return redirect('manage_questions_batch')
+
+        created_questions = []
+        with transaction.atomic():
+            # Urutan sequence awal
+            max_seq = Question.objects.filter(competition=competition).aggregate(Max('sequence'))['sequence__max'] or 0
+
+            for idx, item in enumerate(items):
+                title = str(item.get('title', '')).strip()
+                body = str(item.get('body', '')).strip()
+                if not title:
+                    title = f"Soal Tantangan #{max_seq + 1}"
+                if not body:
+                    body = title
+
+                q_type = QuestionType.ESSAY if item.get('type') == 'ESSAY' else QuestionType.MCQ
+                
+                try:
+                    points = Decimal(str(item.get('points', 10.0)))
+                except Exception:
+                    points = Decimal('10.00')
+
+                rubric = str(item.get('rubric_guidelines', item.get('rubric', ''))).strip()
+
+                try:
+                    seq = int(item.get('sequence'))
+                except (ValueError, TypeError):
+                    max_seq += 1
+                    seq = max_seq
+
+                question = Question.objects.create(
+                    competition=competition,
+                    title=title,
+                    body=body,
+                    rubric_guidelines=rubric,
+                    type=q_type,
+                    points=points,
+                    sequence=seq,
+                    status=QuestionStatus.APPROVED,
+                    created_by=request.user
+                )
+
+                # Opsi pilihan ganda jika MCQ
+                if q_type == QuestionType.MCQ:
+                    raw_options = item.get('options', [])
+                    if isinstance(raw_options, list) and len(raw_options) > 0:
+                        has_correct = False
+                        for opt_idx, opt in enumerate(raw_options):
+                            if isinstance(opt, dict):
+                                opt_text = str(opt.get('option_text', opt.get('text', ''))).strip()
+                                is_correct = bool(opt.get('is_correct', False))
+                            else:
+                                opt_text = str(opt).strip()
+                                is_correct = (opt_idx == 0)
+
+                            if is_correct:
+                                has_correct = True
+
+                            if opt_text:
+                                QuestionOption.objects.create(
+                                    question=question,
+                                    option_text=opt_text,
+                                    is_correct=is_correct,
+                                    order=opt_idx + 1
+                                )
+                        # Jika belum ada opsi yang ditandai benar, default opsi pertama
+                        if not has_correct:
+                            first_opt = question.options.first()
+                            if first_opt:
+                                first_opt.is_correct = True
+                                first_opt.save(update_fields=['is_correct'])
+
+                created_questions.append(question)
+
+            # Audit logging
+            ip_address = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+            SecurityAuditLog.objects.create(
+                user=request.user,
+                event_type=AuditEventType.QUESTION_CREATE,
+                ip_address=ip_address,
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                path=request.path
+            )
+
+        success_msg = f"Berhasil membuat {len(created_questions)} soal sekaligus untuk kompetisi '{competition.title}'."
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({
+                'status': 'success',
+                'message': success_msg,
+                'count': len(created_questions),
+                'competition_id': str(competition.id),
+                'redirect_url': f"/manage/questions/?competition_id={competition.id}"
+            })
+
+        messages.success(request, success_msg)
+        return redirect(f"/manage/questions/?competition_id={competition.id}")
+
+    selected_comp = request.GET.get('competition_id', '')
+    context = {
+        'competitions': competitions,
+        'selected_comp': selected_comp,
+        'active_tab': 'questions'
+    }
+    return render(request, 'management/questions_batch.html', context)
 
 
 @staff_or_admin_required

@@ -8,8 +8,10 @@ urlpatterns = [
     path('competitions/<uuid:competition_id>/status/', views.competition_status_update, name='manage_competition_status'),
 
     # Question Bank & Editor
+    path('competitions/quick-create/', views.competition_quick_create, name='manage_competition_quick_create'),
     path('questions/', views.questions_manage, name='manage_questions'),
     path('questions/create/', views.question_create_or_edit, name='manage_question_create'),
+    path('questions/batch/', views.questions_batch_create, name='manage_questions_batch'),
     path('questions/<uuid:question_id>/edit/', views.question_create_or_edit, name='manage_question_edit'),
     path('questions/<uuid:question_id>/delete/', views.question_delete, name='manage_question_delete'),
 
