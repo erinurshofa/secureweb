@@ -1019,19 +1019,20 @@ def participants_manage(request):
 
 @organizer_or_admin_required
 def participant_reset_password(request, user_id):
-    """Reset password peserta ke password default 'admin123'."""
+    """Reset password peserta ke password default 'SecureP@ss2026!'."""
     if request.method == 'POST':
         user = get_object_or_404(User, id=user_id)
-        user.set_password('admin123')
+        default_pwd = 'SecureP@ss2026!'
+        user.set_password(default_pwd)
         user.save(update_fields=['password'])
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '') or request.POST.get('ajax') == '1':
             return JsonResponse({
                 'status': 'success',
                 'user_id': str(user.id),
                 'username': user.username,
-                'message': f"Password untuk peserta '{user.username}' berhasil direset menjadi: admin123"
+                'message': f"Password untuk peserta '{user.username}' berhasil direset menjadi: {default_pwd}"
             })
-        messages.success(request, f"Password untuk peserta '{user.username}' berhasil direset menjadi: admin123")
+        messages.success(request, f"Password untuk peserta '{user.username}' berhasil direset menjadi: {default_pwd}")
     return redirect('manage_participants')
 
 

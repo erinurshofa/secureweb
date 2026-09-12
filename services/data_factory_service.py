@@ -153,7 +153,7 @@ class CyberDataFactoryService:
                     'is_superuser': True,
                 }
             )
-            admin_user.set_password('admin123')
+            admin_user.set_password('Adm!nCyber#2026')
             admin_user.role = UserRole.SUPER_ADMIN
             admin_user.is_staff = True
             admin_user.is_superuser = True
@@ -171,7 +171,7 @@ class CyberDataFactoryService:
                     'is_staff': True,
                 }
             )
-            juri1.set_password('admin123')
+            juri1.set_password('Jur!S1ber#2026')
             juri1.role = UserRole.JUDGE
             juri1.is_staff = True
             juri1.save()
@@ -187,7 +187,7 @@ class CyberDataFactoryService:
                     'is_staff': True,
                 }
             )
-            juri2.set_password('admin123')
+            juri2.set_password('DrSec#Lead2026!')
             juri2.role = UserRole.JUDGE
             juri2.is_staff = True
             juri2.save()
@@ -196,18 +196,18 @@ class CyberDataFactoryService:
             # 2. DIVERSE HACKER PARTICIPANTS
             # -------------------------------------------------------------
             participants_data = [
-                ('pwn_master', 'Defensive Blue Team - Univ. Indonesia', '10.10.14.33'),
-                ('byte_ninja', 'Red Team Research Lab - ITB Bandung', '10.10.14.45'),
-                ('cipher_queen', 'Applied Cryptography Club - UGM', '10.10.14.68'),
-                ('null_pointer', 'Digital Forensics Lab - Telkom Univ.', '10.10.14.52'),
-                ('zero_day_hunter', 'Binus Cyber Security Community', '10.10.14.77'),
-                ('packet_sniffer', 'Independen Bug Hunter', '10.10.14.89'),
-                ('kernel_panic', 'Politeknik Siber dan Sandi Negara (PSSN)', '10.10.14.99'),
-                ('hacker_one', 'Cyber Defense Academy', '10.10.14.101'),
+                ('pwn_master', 'Defensive Blue Team - Univ. Indonesia', '10.10.14.33', 'PwnM@ster2026!'),
+                ('byte_ninja', 'Red Team Research Lab - ITB Bandung', '10.10.14.45', 'ByteN!nja2026#'),
+                ('cipher_queen', 'Applied Cryptography Club - UGM', '10.10.14.68', 'C!pherQue3n2026'),
+                ('null_pointer', 'Digital Forensics Lab - Telkom Univ.', '10.10.14.52', 'NullP0inter2026!'),
+                ('zero_day_hunter', 'Binus Cyber Security Community', '10.10.14.77', 'Z3roDay#Hunt2026'),
+                ('packet_sniffer', 'Independen Bug Hunter', '10.10.14.89', 'Pack3tSn!ff2026'),
+                ('kernel_panic', 'Politeknik Siber dan Sandi Negara (PSSN)', '10.10.14.99', 'K3rnelPanic2026!'),
+                ('hacker_one', 'Cyber Defense Academy', '10.10.14.101', 'H@ck3rOne2026!'),
             ]
 
             participants: Dict[str, User] = {}
-            for uname, inst, ip in participants_data:
+            for uname, inst, ip, pwd in participants_data:
                 p, _ = User.objects.get_or_create(
                     username=uname,
                     defaults={
@@ -218,7 +218,7 @@ class CyberDataFactoryService:
                         'is_active': True,
                     }
                 )
-                p.set_password('admin123')
+                p.set_password(pwd)
                 p.institution = inst
                 p.last_login_ip = ip
                 p.save()

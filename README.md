@@ -218,18 +218,19 @@ Selamat! Platform kuis keamanan siber Anda sudah siap digunakan! 🎉
 
 ## 🔑 Daftar Akun Siap Pakai (Uji Coba Cepat)
 
-Semua akun pengujian di bawah ini menggunakan kata sandi standar yang sama: **`admin123`**
+Setiap akun pengujian dikonfigurasi dengan kata sandi berkekuatan tinggi (Enterprise Hardened) sesuai standar keamanan:
 
 | No | Username | Password | Peran (Role) | Keterangan & Tujuan Uji Coba | URL yang Diakses |
 | :-: | :--- | :--- | :--- | :--- | :--- |
-| **1** | `admin` | `admin123` | **Super Admin** | Panitia Pusat. Akses penuh ke statistik, live monitor, dan manajemen kompetisi. | [http://127.0.0.1:8001/manage/](http://127.0.0.1:8001/manage/) |
-| **2** | `juri_siber` | `admin123` | **Judge (Juri)** | Dewan Juri (BSSN). Bertugas memeriksa jawaban essay peserta dan memberi nilai. | [http://127.0.0.1:8001/manage/grading/](http://127.0.0.1:8001/manage/grading/) |
-| **3** | `dr_sec_lead` | `admin123` | **Judge (Juri)** | Forensic Lead. Alternatif akun juri kedua. | [http://127.0.0.1:8001/manage/grading/](http://127.0.0.1:8001/manage/grading/) |
-| **4** | `byte_ninja` | `admin123` | **Participant** | Peserta aktif. Sedang dalam sesi ujian berjalan (countdown live aktif). | [http://127.0.0.1:8001/dashboard/](http://127.0.0.1:8001/dashboard/) |
-| **5** | `pwn_master` | `admin123` | **Participant** | Peserta aktif kedua dengan sisa waktu berbeda. | [http://127.0.0.1:8001/dashboard/](http://127.0.0.1:8001/dashboard/) |
-| **6** | `hacker_one` | `admin123` | **Participant** | Peserta yang sudah selesai ujian (status *Submitted*). | [http://127.0.0.1:8001/dashboard/](http://127.0.0.1:8001/dashboard/) |
+| **1** | `developer` | `devSecOps2026!` | **Developer** | Lead DevSecOps. Akses eksklusif Disaster Recovery & Backup Vault. | [http://127.0.0.1:8001/manage/system/backup/](http://127.0.0.1:8001/manage/system/backup/) |
+| **2** | `admin` | `Adm!nCyber#2026` | **Super Admin** | Panitia Pusat. Akses penuh ke statistik, live monitor, dan manajemen kompetisi. | [http://127.0.0.1:8001/manage/](http://127.0.0.1:8001/manage/) |
+| **3** | `juri_siber` | `Jur!S1ber#2026` | **Judge (Juri)** | Dewan Juri (BSSN). Bertugas memeriksa jawaban essay peserta dan memberi nilai. | [http://127.0.0.1:8001/manage/grading/](http://127.0.0.1:8001/manage/grading/) |
+| **4** | `dr_sec_lead` | `DrSec#Lead2026!` | **Judge (Juri)** | Forensic Lead. Alternatif akun juri kedua. | [http://127.0.0.1:8001/manage/grading/](http://127.0.0.1:8001/manage/grading/) |
+| **5** | `byte_ninja` | `ByteN!nja2026#` | **Participant** | Peserta aktif (ITB). Sedang dalam sesi ujian berjalan (countdown live aktif). | [http://127.0.0.1:8001/dashboard/](http://127.0.0.1:8001/dashboard/) |
+| **6** | `pwn_master` | `PwnM@ster2026!` | **Participant** | Peserta aktif kedua (UI) dengan sisa waktu berbeda. | [http://127.0.0.1:8001/dashboard/](http://127.0.0.1:8001/dashboard/) |
+| **7** | `hacker_one` | `H@ck3rOne2026!` | **Participant** | Peserta yang sudah selesai ujian (status *Submitted*). | [http://127.0.0.1:8001/dashboard/](http://127.0.0.1:8001/dashboard/) |
 
-*(Catatan lengkap profil peserta dan institusi dapat dilihat di file `pengguna.txt`).*
+*(Catatan lengkap profil peserta dan institusi dapat dilihat di file lokal `pengguna.txt`).*
 
 ---
 

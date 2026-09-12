@@ -37,7 +37,7 @@ juri1, _ = User.objects.get_or_create(
         'is_staff': True,
     }
 )
-juri1.set_password('admin123')
+juri1.set_password('Jur!S1ber#2026')
 juri1.role = 'JUDGE'
 juri1.is_staff = True
 juri1.save()
@@ -51,24 +51,24 @@ juri2, _ = User.objects.get_or_create(
         'is_staff': True,
     }
 )
-juri2.set_password('admin123')
+juri2.set_password('DrSec#Lead2026!')
 juri2.role = 'JUDGE'
 juri2.is_staff = True
 juri2.save()
 
 # 2. Peserta Hacker / Kampus / Tim
 participants_data = [
-    ('pwn_master', 'pwn@ui.ac.id', 'Defensive Blue Team - Univ. Indonesia', '10.10.14.33'),
-    ('byte_ninja', 'ninja@itb.ac.id', 'Red Team Research Lab - ITB Bandung', '10.10.14.45'),
-    ('null_pointer', 'null@telkomuniversity.ac.id', 'Digital Forensics Lab - Telkom Univ.', '10.10.14.52'),
-    ('cipher_queen', 'crypto@ugm.ac.id', 'Applied Cryptography Club - UGM', '10.10.14.68'),
-    ('zero_day_hunter', 'hunter@binus.ac.id', 'Binus Cyber Security Community', '10.10.14.77'),
-    ('packet_sniffer', 'sniffer@bugbounty.id', 'Independen Bug Hunter', '10.10.14.89'),
-    ('kernel_panic', 'panic@poltekssn.ac.id', 'Politeknik Siber dan Sandi Negara (PSSN)', '10.10.14.99'),
+    ('pwn_master', 'pwn@ui.ac.id', 'Defensive Blue Team - Univ. Indonesia', '10.10.14.33', 'PwnM@ster2026!'),
+    ('byte_ninja', 'ninja@itb.ac.id', 'Red Team Research Lab - ITB Bandung', '10.10.14.45', 'ByteN!nja2026#'),
+    ('null_pointer', 'null@telkomuniversity.ac.id', 'Digital Forensics Lab - Telkom Univ.', '10.10.14.52', 'NullP0inter2026!'),
+    ('cipher_queen', 'crypto@ugm.ac.id', 'Applied Cryptography Club - UGM', '10.10.14.68', 'C!pherQue3n2026'),
+    ('zero_day_hunter', 'hunter@binus.ac.id', 'Binus Cyber Security Community', '10.10.14.77', 'Z3roDay#Hunt2026'),
+    ('packet_sniffer', 'sniffer@bugbounty.id', 'Independen Bug Hunter', '10.10.14.89', 'Pack3tSn!ff2026'),
+    ('kernel_panic', 'panic@poltekssn.ac.id', 'Politeknik Siber dan Sandi Negara (PSSN)', '10.10.14.99', 'K3rnelPanic2026!'),
 ]
 
 created_participants = {}
-for uname, email, inst, ip in participants_data:
+for uname, email, inst, ip, pwd in participants_data:
     p, _ = User.objects.get_or_create(
         username=uname,
         defaults={
@@ -79,7 +79,7 @@ for uname, email, inst, ip in participants_data:
             'is_active': True,
         }
     )
-    p.set_password('admin123')
+    p.set_password(pwd)
     p.institution = inst
     p.last_login_ip = ip
     p.save()

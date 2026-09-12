@@ -67,7 +67,7 @@
                 class="btn-secondary" 
                 style="padding: 4px 12px; min-height: 32px; font-size: 0.78rem; border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;"
               >
-                🔑 Reset Password (admin123)
+                🔑 Reset Password (SecureP@ss2026!)
               </button>
             </td>
           </tr>
@@ -89,7 +89,7 @@
 <script>
   // Instant Password Reset without Page Reload
   async function resetPasswordAjax(userId, username) {
-    if (!confirm(`Reset kata sandi peserta "${username}" menjadi "admin123"?`)) {
+    if (!confirm(`Reset kata sandi peserta "${username}" menjadi "SecureP@ss2026!"?`)) {
       return;
     }
 
@@ -110,7 +110,7 @@
       });
       const data = await res.json();
       if (data.status === 'success') {
-        btn.innerHTML = '✓ Password Direset (admin123)';
+        btn.innerHTML = '✓ Password Direset (SecureP@ss2026!)';
         btn.style.borderColor = '#10b981';
         btn.style.color = '#34d399';
         setTimeout(() => {
